@@ -19,6 +19,8 @@ library(MBESS)
 library(bda)
 library(jtools)
 library(huxtable)
+library(sf)
+library(tigris)
 set.seed(07151129)
 ```
 
@@ -155,6 +157,28 @@ nat_price <- melt(nat_price, id = "State")
 oil_price <- melt(oil_price, id = "State")
 emissions <- melt(emissions, id = "State")
 
+colnames(ci) <- c("State", "Year", "CI")
+colnames(ei) <- c("State", "Year", "EI")
+colnames(energy) <- c("State", "Year", "EnergyConsumption")
+colnames(gdpcurrent) <- c("State", "Year", "RealGDP")
+colnames(renewables) <- c("State", "Year", "RenewableConsumption")
+colnames(ng) <- c("State", "Year", "NatGasConsumption")
+colnames(total) <- c("State", "Year", "TotalWages")
+colnames(farm) <- c("State", "Year", "FarmWages")
+colnames(mining) <- c("State", "Year", "MiningWages")
+colnames(pop) <- c("State", "Year", "Population")
+colnames(incpc) <- c("State", "Year", "IncomePerCapita")
+colnames(union) <- c("State", "Year", "PercentUnion")
+colnames(total_prod) <- c("State", "Year", "TotalProduction")
+colnames(coal_prod) <- c("State", "Year", "CoalProduction")
+colnames(ren_prod) <- c("State", "Year", "RenewableProduction")
+colnames(nat_prod) <- c("State", "Year", "NatGasProduction")
+colnames(oil_prod) <- c("State", "Year", "OilProduction")
+colnames(coal_price) <- c("State", "Year", "CoalPrice")
+colnames(nat_price) <- c("State", "Year", "NatGasPrice")
+colnames(oil_price) <- c("State", "Year", "OilPrice")
+colnames(emissions) <- c("State", "Year", "Emissions")
+
 list <- list(ci, ei, energy, gdpcurrent, renewables, ng, total, farm, mining, pop, incpc, union, total_prod, coal_prod, ren_prod, nat_prod, oil_prod, coal_price, nat_price, oil_price, emissions)
 ```
 
@@ -170,14 +194,14 @@ convert_state_name <- function(state_name) {
 p <- data.frame()
 
 list <- lapply(list, function(df) {
-  colnames(df) <- c("State", "Year", "Value")
+  #colnames(df) <- c("State", "Year", "Value")
   df$State <- gsub("*", "", df$State)
   df$State <- gsub(" ", "", df$State)
   df$State <- sapply(df$State, convert_state_name)
   df$Year <- gsub("X", "", df$Year)
   df$Year <- as.numeric(df$Year)
-  df$Value <- gsub(",","",df$Value)
-  df$Value <- as.numeric(df$Value)
+  df[,3] <- gsub(",","",df[,3])
+  df[,3] <- as.numeric(df[,3])
   df <- df[df$Year>=1998&df$Year<=2020,]
   return(df)
 })
@@ -193,7 +217,7 @@ ideology <- as.data.frame(cbind(ideology$st, ideology$year, ideology$hou_chamber
 colnames(ideology) <- c("State","Year","House","Senate")
 ideology$House <- as.numeric(ideology$House)
 ideology$Senate <- as.numeric(ideology$Senate)
-ideology$Chamber <- ideology$Senate
+ideology$MeanChamberIdeology <- ideology$Senate
 str(ideology)
 
 for (i in 1:nrow(ideology)) {
@@ -210,57 +234,30 @@ states <- subset(states, select = c("State", "Area"))
 ideology <- ideology[ideology$Year >= 1998 & ideology$Year <= 2020,]
 p <- merge(ideology, p, by=c("State","Year"))
 p <- merge(p, states, by="State")
-colnames(p) <- c("State","Year","House","Senate","Chamber","CI","EI","TotalEnergy","GDPCurrent","Renewables","NatGas","TotalWages","FarmWages","MiningWages","Population","IncomePC","ManuUnion","TotalProd","CoalProd","RenProd","GasProd","OilProd","CoalPrice","NatPrice","OilPrice","Emissions","Area")
-p$FarmWages <- (p$FarmWages/p$TotalWages)
-p$MiningWages <- (p$MiningWages/p$TotalWages)
-p$Renewables <- (p$Renewables/p$TotalEnergy)+1
-p$NatGas <- (p$NatGas/p$TotalEnergy)+1
-p$GDPpc <- (p$GDPCurrent/p$Population)
-p$CoalValue <- (p$CoalPrice * p$CoalProd)/p$GDPCurrent
-p$NatValue <- (p$NatPrice * p$GasProd)/p$GDPCurrent
-p$OilValue <- (p$OilPrice * p$OilProd)/p$GDPCurrent
-p$Chamber <- p$Chamber + 10
-p$ManuUnion <- p$ManuUnion + 1
-p$CoalValue <- p$CoalValue + 1
-p$NatValue <- p$NatValue + 1
-p$OilValue <- p$OilValue + 1
-p$RenProd <- (p$RenProd/p$TotalProd)+1
-p$CoalProd <- (p$CoalProd/p$TotalProd)+1
-p$GasProd <- (p$GasProd/p$TotalProd)+1
-p$OilProd <- (p$OilProd/p$TotalProd)+1
-p$CoalPrice <- p$CoalPrice
-p$OilPrice <- p$OilPrice
-p$NatPrice <- p$NatPrice
 
-p <- subset(p, select = c(-House,-Senate,-TotalEnergy,-TotalWages))
-```
-taking natural logs for p
+p$PropFarmWages <- (p$FarmWages/p$TotalWages)+1
+p$PropMiningWages <- (p$MiningWages/p$TotalWages)+1
+p$PropRenewableConsumption <- (p$RenewableConsumption/p$EnergyConsumption)+1
+p$PropNatGasConsumption <- (p$NatGasConsumption/p$EnergyConsumption)+1
+p$GDPPerCapita <- (p$RealGDP/p$Population)
+p$CoalValue <- ((p$CoalPrice * p$CoalProduction)/p$RealGDP)+1
+p$NatGasValue <- ((p$NatGasPrice * p$NatGasProduction)/p$RealGDP)+1
+p$OilValue <- ((p$OilPrice * p$OilProd)/p$RealGDP)+1
+p$AdjMeanChamber <- p$MeanChamberIdeology + 5
+p$AdjPercentUnion <- p$PercentUnion + 1
+p$PropRenewableProduction <- (p$RenewableProduction/p$TotalProduction)+1
+p$PropCoalProduction <- (p$CoalProduction/p$TotalProduction)+1
+p$PropNatGasProduction <- (p$NatGasProduction/p$TotalProduction)+1
+p$PropOilProduction <- (p$OilProduction/p$TotalProduction)+1
 
-```{r}
-#p$Chamber <- log(p$Chamber)
-#p$CI <- log(p$CI)
-#p$EI <- log(p$EI)
-#p$Renewables <- log(p$Renewables)
-#p$NatGas <- log(p$NatGas)
-#p$FarmWages <- log(p$FarmWages)
-#p$MiningWages <- log(p$MiningWages)
-#p$IncomePC <- log(p$IncomePC)
-#p$ManuUnion <- log(p$ManuUnion)
-#p$Population <- log(p$Population)
-p$CI_Lag1 <- lag(p$CI, 1)
-p$EI_Lag1 <- lag(p$EI, 1)
-p$Emissions_Lag1 <- lag(p$Emissions, 1)
-#p$GDPCurrent <- log(p$GDPCurrent)
+p <- subset(p, select = c(-House,-Senate,-EnergyConsumption,-TotalWages,-TotalProduction, -RenewableConsumption,
+                          -NatGasConsumption,-FarmWages,-MiningWages,-PercentUnion,-CoalProduction,-RenewableProduction,
+                          -OilProduction,-NatGasProduction,-MeanChamberIdeology))
 
-write.csv(p, "p.csv")
-
-#p <- as.data.frame(lapply(p, sample))
+colnames(p)
 ```
 
 ```{r}
-library(tidyverse)
-library(sf)
-library(tigris)
 pv <- read.csv("data/pv_reference_2020.csv")
 wind <- read.csv("data/Reference_Access_Siting_Regime_ATB_Mid_Turbine.csv")
 
@@ -288,8 +285,6 @@ wind_with_states <- wind_with_states %>% group_by(NAME) %>%
                   summarise(weighted_Speed120m = mean(weighted_Speed120m, na.rm = TRUE),
                             )
 
-p <- read.csv("p.csv")[,2:31]
-
 pv_with_states$NAME <- gsub(" ", "", pv_with_states$NAME)
 wind_with_states$NAME <- gsub(" ", "", wind_with_states$NAME)
 
@@ -304,7 +299,6 @@ p <- left_join(p, na.omit(as.data.frame(wind_with_states)) %>% select(-geometry)
 str(pv_with_states)
 
 
-write.csv(p, "p_JAN28.csv")
-
+write.csv(p, "p_JAN29.csv")
 ```
 
