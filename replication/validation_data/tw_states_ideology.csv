@@ -1,0 +1,52 @@
+abb,name,mrp_estimate
+AL,Alabama,0.244043632
+AK,Alaska,0.047233072
+AZ,Arizona,0.104864263
+AR,Arkansas,0.226741097
+CA,California,-0.1765997
+CO,Colorado,0.014228342
+CT,Connecticut,-0.23482902
+DE,Delaware,-0.109396074
+DC,District of Columbia,-0.929728995
+FL,Florida,-0.019153483
+GA,Georgia,0.135669084
+HI,Hawaii,-0.187669903
+ID,Idaho,0.332898004
+IL,Illinois,-0.127803096
+IN,Indiana,0.142614463
+IA,Iowa,0.093761118
+KS,Kansas,0.120060506
+KY,Kentucky,0.194089206
+LA,Louisiana,0.190059399
+ME,Maine,-0.096092655
+MD,Maryland,-0.223156938
+MA,Massachusetts,-0.342890443
+MI,Michigan,-0.01807356
+MN,Minnesota,-0.019057519
+MS,Mississippi,0.226732968
+MO,Missouri,0.138513984
+MT,Montana,0.194765506
+NE,Nebraska,0.231803811
+NV,Nevada,0.073271314
+NH,New Hampshire,-0.036215924
+NJ,New Jersey,-0.167437294
+NM,New Mexico,-0.078612257
+NY,New York,-0.365263787
+NC,North Carolina,0.051402364
+ND,North Dakota,0.180392361
+OH,Ohio,0.068878722
+OK,Oklahoma,0.319788051
+OR,Oregon,-0.052899799
+PA,Pennsylvania,0.005049107
+RI,Rhode Island,-0.239334478
+SC,South Carolina,0.109491599
+SD,South Dakota,0.247433599
+TN,Tennessee,0.218964554
+TX,Texas,0.145283225
+UT,Utah,0.292981345
+VT,Vermont,-0.39073616
+VA,Virginia,0.011578578
+WA,Washington,-0.136199756
+WV,West Virginia,0.129742033
+WI,Wisconsin,0.037998973
+WY,Wyoming,0.248082271

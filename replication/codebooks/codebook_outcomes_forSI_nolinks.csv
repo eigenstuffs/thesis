@@ -1,0 +1,12 @@
+Type,Variable names,Description,Source,Filename
+emissions,co2_current; so2_current; nox_current,US electric power industry estimated emissions by state (metric tons),US Energy Information Administration (EIA): Electricity historical state data,EIA_emission_annual_1990-2020.csv
+emissions,co2otaleia_current,State energy-related CO2 emissions (MMT),EIA: Environment Data,EIA_energy.csv
+mechanism,coal_current (CLPRP: LPRK to convert to BBTU); noncombustible.renew_current (NCPRB); renewableprod_current (REPRB); energyprod_current (TEPRB); gas_current (NGMPB),Primary energy production and consumption by source; source-specific variables are percent of energyprod_current,EIA: State energy data system (SEDS),EIA_StateEnergyProduction.xlsx
+mechanism,totalgen_current; coalgen_current; gasgen_current; oilgen_current; windgen_current; solargen_current,Net electricity generation by type of producer by energy source; filtered to include total electric power industry as producer; source-specific variables are percent of totalgen_current,EIA: Electricity historical state data,EIA_annual_generation_state.csv
+mechanism,TETCB,Total energy consumption in billion BTU,EIA: SEDS,EIA_annual_totalconsumption_state.csv
+outcome,electricityprice_current,Average electricity price in cents per kwh,EIA: Electricity data browser,EIA_electricity_price.csv
+outcome and covariate,wages_current,Wages and salaries (USD1000s),US Bureau of Economic Analysis (BEA),SAINC6N__abb_1998_2020.csv
+outcome and covariate,gdp_current,State GDP (million USD),BEA,SAGDP2N_abb_1997_2021.csv
+outcome and covariate,jobs_current,Total employment (number of jobs) aggregated across NAICS codes,BEA,
+population,pop,State population totals,US Census Bureau,various
+covariate,unionizationrate,Percent of workers who are members of labor unions,Hirsch and Macpherson ``Union Membership and coverage database from the current population survey: Note'' (2003) (unionstats.com),union_membership.csv

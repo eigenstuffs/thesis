@@ -1,0 +1,65 @@
+description,units,source key,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021
+Average retail price of electricity,cents per kilowatthour,,,,,,,,,,,,,,,,,,,,,,
+All sectors,cents per kilowatthour,ELEC.PRICE.US-ALL.A,,,,,,,,,,,,,,,,,,,,,
+All sectors : United States,cents per kilowatthour,ELEC.PRICE.US-ALL.A,7.29,7.2,7.44,7.61,8.14,8.9,9.13,9.74,9.82,9.83,9.9,9.84,10.07,10.44,10.41,10.27,10.48,10.53,10.54,10.59,11.18
+All sectors : New England,,ELEC.PRICE.NEW-ALL.A,,,,,,,,,,,,,,,,,,,,,
+All sectors : Connecticut,cents per kilowatthour,ELEC.PRICE.CT-ALL.A,9.62,9.71,10.16,10.26,12.06,14.83,16.45,17.8,18.07,17.38,16.35,15.54,15.66,17.05,17.77,17.24,17.55,18.41,18.66,19.13,18.78
+All sectors : Maine,cents per kilowatthour,ELEC.PRICE.ME-ALL.A,10.55,10.35,9.79,9.69,10.57,11.8,14.59,13.8,13.12,12.84,12.58,11.81,11.86,12.65,12.78,12.8,13.02,13.44,14.04,13.54,14.06
+All sectors : Massachusetts,cents per kilowatthour,ELEC.PRICE.MA-ALL.A,11.55,10.06,10.56,10.77,12.18,15.45,15.16,16.23,15.45,14.26,14.11,13.79,14.51,15.35,16.9,16.48,17.12,18.5,18.4,18.19,19.17
+All sectors : New Hampshire,cents per kilowatthour,ELEC.PRICE.NH-ALL.A,10.95,10.6,10.83,11.37,12.53,13.84,13.98,14.63,15.09,14.84,14.74,14.19,14.3,15.22,16.02,15.66,16.17,17.01,17.15,16.63,17.42
+All sectors : Rhode Island,cents per kilowatthour,ELEC.PRICE.RI-ALL.A,11.45,9.2,10.47,10.96,11.97,13.98,13.12,16.04,14.22,14.07,13.04,12.74,13.72,15.41,17.01,16.28,16.42,18.1,18.49,18.54,18.52
+All sectors : Vermont,cents per kilowatthour,ELEC.PRICE.VT-ALL.A,10.86,10.87,10.98,11.02,10.95,11.37,12.04,12.33,12.75,13.24,13.8,14.22,14.61,14.57,14.41,14.46,14.6,15.13,15.36,16.33,16.37
+All sectors : Middle Atlantic,,ELEC.PRICE.MAT-ALL.A,,,,,,,,,,,,,,,,,,,,,
+All sectors : New Jersey,cents per kilowatthour,ELEC.PRICE.NJ-ALL.A,9.36,9.3,9.48,10.29,10.89,11.88,13.01,14.43,14.53,14.68,14.3,13.68,13.69,13.95,13.74,13.38,13.32,13.23,13.42,13.63,14.1
+All sectors : New York,cents per kilowatthour,ELEC.PRICE.NY-ALL.A,11.55,11.16,12.44,12.55,13.95,15.27,15.22,16.47,15.44,16.41,15.89,15.15,15.44,16.25,15.28,14.47,14.74,14.83,14.34,14.87,16.14
+All sectors : Pennsylvania,cents per kilowatthour,ELEC.PRICE.PA-ALL.A,8.01,8.06,8.02,8,8.27,8.68,9.08,9.33,9.6,10.31,10.45,9.91,9.81,10.28,10.31,10.19,10.13,10.1,9.81,9.7,10
+All sectors : East North Central,,ELEC.PRICE.ENC-ALL.A,,,,,,,,,,,,,,,,,,,,,
+All sectors : Illinois,cents per kilowatthour,ELEC.PRICE.IL-ALL.A,6.9,6.94,6.86,6.8,6.95,7.07,8.46,9.23,9.15,9.13,8.97,8.4,8.26,9.36,9.4,9.38,9.49,9.6,9.56,9.75,10.2
+All sectors : Indiana,cents per kilowatthour,ELEC.PRICE.IN-ALL.A,5.3,5.34,5.37,5.58,5.88,6.46,6.5,7.09,7.62,7.67,8.01,8.29,8.73,9.06,8.99,9.22,9.77,9.75,9.91,9.92,10.39
+All sectors : Michigan,cents per kilowatthour,ELEC.PRICE.MI-ALL.A,6.97,7.09,6.85,6.94,7.23,8.14,8.53,8.93,9.4,9.88,10.4,10.98,11.21,11.03,10.76,11.05,11.28,11.4,11.56,12.21,12.95
+All sectors : Ohio,cents per kilowatthour,ELEC.PRICE.OH-ALL.A,6.62,6.77,6.73,6.89,7.08,7.71,7.91,8.39,9.02,9.14,9.03,9.12,9.2,9.73,9.98,9.84,9.84,9.94,9.58,9.44,9.78
+All sectors : Wisconsin,cents per kilowatthour,ELEC.PRICE.WI-ALL.A,6.08,6.28,6.64,6.88,7.48,8.13,8.48,9,9.38,9.78,10.21,10.28,10.51,10.57,10.73,10.67,10.76,10.58,10.66,10.82,11.02
+All sectors : West North Central,,ELEC.PRICE.WNC-ALL.A,,,,,,,,,,,,,,,,,,,,,
+All sectors : Iowa,cents per kilowatthour,ELEC.PRICE.IA-ALL.A,6.14,6.01,6.11,6.4,6.69,7.01,6.83,6.89,7.37,7.66,7.56,7.71,8.07,8.15,8.35,8.55,8.73,8.92,9.08,8.97,9.17
+All sectors : Kansas,cents per kilowatthour,ELEC.PRICE.KS-ALL.A,6.24,6.31,6.35,6.37,6.55,6.89,6.84,7.45,7.98,8.35,8.89,9.33,9.72,10.16,10.14,10.49,10.6,10.72,10.26,10.38,10.44
+All sectors : Minnesota,cents per kilowatthour,ELEC.PRICE.MN-ALL.A,5.97,5.8,6.01,6.24,6.61,6.98,7.44,7.79,8.14,8.41,8.65,8.86,9.41,9.52,9.53,9.99,10.27,10.37,10.33,10.57,11.12
+All sectors : Missouri,cents per kilowatthour,ELEC.PRICE.MO-ALL.A,6.03,6.09,6.02,6.07,6.13,6.3,6.56,6.84,7.35,7.78,8.32,8.53,9.04,9.11,9.44,9.74,10.03,9.93,9.68,9.64,9.9
+All sectors : Nebraska,cents per kilowatthour,ELEC.PRICE.NE-ALL.A,5.39,5.55,5.64,5.7,5.87,6.07,6.28,6.58,7.21,7.52,7.88,8.37,8.74,8.84,8.91,9.05,9.08,9.02,9.08,8.97,8.93
+All sectors : North Dakota,cents per kilowatthour,ELEC.PRICE.ND-ALL.A,5.48,5.45,5.47,5.69,5.92,6.21,6.42,6.69,6.63,7.11,7.5,7.83,8.2,8.41,8.75,8.94,8.78,8.91,8.85,8.53,8.47
+All sectors : South Dakota,cents per kilowatthour,ELEC.PRICE.SD-ALL.A,6.35,6.26,6.35,6.44,6.6,6.7,6.89,7.14,7.39,7.82,8.05,8.49,8.86,9.05,9.47,9.83,10.05,9.97,9.96,10.06,10.47
+All sectors : South Atlantic,,ELEC.PRICE.SAT-ALL.A,,,,,,,,,,,,,,,,,,,,,
+All sectors : Delaware,cents per kilowatthour,ELEC.PRICE.DE-ALL.A,6.8,6.91,6.96,7.53,7.76,10.13,11.35,12.38,12.2,11.97,11.48,11.06,10.9,11.22,11.17,11.09,10.9,10.55,10.52,10.24,10.56
+All sectors : District Of Columbia,cents per kilowatthour,ELEC.PRICE.DC-ALL.A,7.4,7.34,7.4,7.47,9.18,11.08,11.79,13.18,13.23,13.35,12.81,11.85,11.85,12.11,12.07,11.73,11.8,12.03,12.27,11.9,12.84
+All sectors : Florida,cents per kilowatthour,ELEC.PRICE.FL-ALL.A,7.67,7.31,7.72,8.16,8.76,10.45,10.33,10.74,11.49,10.58,10.61,10.44,10.22,10.77,10.49,9.91,10.42,10.32,10.44,10.06,10.75
+All sectors : Georgia,cents per kilowatthour,ELEC.PRICE.GA-ALL.A,6.39,6.24,6.32,6.58,7.43,7.63,7.86,8.84,8.81,8.87,9.61,9.37,9.69,10.03,9.62,9.59,9.83,9.62,9.86,9.93,10.59
+All sectors : Maryland,cents per kilowatthour,ELEC.PRICE.MD-ALL.A,6.6,6.18,6.45,7.15,8.13,9.95,11.5,13.01,13.09,12.71,11.93,11.28,11.66,12.1,12.07,12.21,11.98,11.57,11.24,11.15,11.5
+All sectors : North Carolina,cents per kilowatthour,ELEC.PRICE.NC-ALL.A,6.58,6.74,6.86,6.97,7.19,7.53,7.83,7.96,8.48,8.67,8.64,9.15,9.24,9.33,9.37,9.2,9.04,9.25,9.45,9.43,9.42
+All sectors : South Carolina,cents per kilowatthour,ELEC.PRICE.SC-ALL.A,5.77,5.83,6.08,6.22,6.72,6.98,7.18,7.85,8.42,8.49,8.8,9.1,9.24,9.67,9.58,9.79,9.97,9.67,10.02,9.9,10.16
+All sectors : Virginia,cents per kilowatthour,ELEC.PRICE.VA-ALL.A,6.18,6.23,6.27,6.43,6.64,6.86,7.12,8,8.93,8.69,8.84,9.07,8.96,9.17,9.31,9.09,9.18,9.48,9.52,9.16,9.28
+All sectors : West Virginia,cents per kilowatthour,ELEC.PRICE.WV-ALL.A,5.07,5.11,5.13,5.13,5.15,5.04,5.34,5.61,6.65,7.45,7.88,8.14,7.91,7.65,8.11,8.98,9,8.72,8.49,8.75,8.89
+All sectors : East South Central,,ELEC.PRICE.ESC-ALL.A,,,,,,,,,,,,,,,,,,,,,
+All sectors : Alabama,cents per kilowatthour,ELEC.PRICE.AL-ALL.A,5.6,5.71,5.88,6.08,6.46,7.07,7.57,8.59,8.83,8.89,9.1,9.18,9.02,9.27,9.33,9.56,9.83,9.63,9.83,9.84,10.31
+All sectors : Kentucky,cents per kilowatthour,ELEC.PRICE.KY-ALL.A,4.24,4.26,4.42,4.63,5.01,5.43,5.84,6.26,6.52,6.73,7.17,7.26,7.69,8.15,8.14,8.42,8.57,8.52,8.61,8.58,9.15
+All sectors : Mississippi,cents per kilowatthour,ELEC.PRICE.MS-ALL.A,6.26,6.24,6.46,7,7.54,8.33,8.03,8.99,8.85,8.59,8.78,8.6,9.11,9.6,9.53,8.67,9.09,9.24,9.28,9.13,9.67
+All sectors : Tennessee,cents per kilowatthour,ELEC.PRICE.TN-ALL.A,5.59,5.72,5.84,6.14,6.31,6.97,7.07,8.18,8.69,8.61,9.28,9.27,9.13,9.4,9.3,9.23,9.45,9.58,9.69,9.52,9.86
+All sectors : West South Central,,ELEC.PRICE.WSC-ALL.A,,,,,,,,,,,,,,,,,,,,,
+All sectors : Arkansas,cents per kilowatthour,ELEC.PRICE.AR-ALL.A,6.05,5.61,5.57,5.67,6.3,6.99,6.96,7.6,7.57,7.28,7.43,7.62,7.93,7.9,8.19,8.13,8.26,7.78,8.22,8.32,9.07
+All sectors : Louisiana,cents per kilowatthour,ELEC.PRICE.LA-ALL.A,6.96,5.99,6.93,7.13,8.03,8.3,8.39,9.44,7.06,7.8,7.68,6.9,8.04,8.09,7.65,7.46,7.79,7.71,7.71,7.51,8.82
+All sectors : Oklahoma,cents per kilowatthour,ELEC.PRICE.OK-ALL.A,6.1,5.59,6.35,6.5,6.85,7.3,7.29,7.81,6.94,7.59,7.8,7.54,7.86,8.18,7.9,7.83,8.2,8.09,7.86,7.63,8.83
+All sectors : Texas,cents per kilowatthour,ELEC.PRICE.TX-ALL.A,7.38,6.62,7.5,7.95,9.14,10.34,10.11,10.99,9.86,9.34,9,8.55,8.66,8.94,8.7,8.43,8.38,8.48,8.6,8.36,9.31
+All sectors : Mountain,,ELEC.PRICE.MTN-ALL.A,,,,,,,,,,,,,,,,,,,,,
+All sectors : Arizona,cents per kilowatthour,ELEC.PRICE.AZ-ALL.A,7.27,7.21,7.34,7.45,7.79,8.24,8.54,9.11,9.56,9.69,9.71,9.81,10.14,10.18,10.34,10.33,10.64,10.85,10.52,10.44,10.72
+All sectors : Colorado,cents per kilowatthour,ELEC.PRICE.CO-ALL.A,6.02,6,6.77,6.95,7.64,7.61,7.76,8.59,8.31,9.15,9.39,9.39,9.88,10.06,9.94,9.83,9.99,10.02,10.17,10.27,10.92
+All sectors : Idaho,cents per kilowatthour,ELEC.PRICE.ID-ALL.A,4.92,5.58,5.22,4.97,5.12,4.92,5.07,5.69,6.51,6.54,6.44,6.92,7.57,7.93,8.09,8.08,8.26,8.17,7.89,7.99,8.17
+All sectors : Montana,cents per kilowatthour,ELEC.PRICE.MT-ALL.A,6.48,5.7,6.14,6.4,6.72,6.91,7.13,7.72,7.58,7.84,8.23,8.25,8.58,8.59,8.9,8.84,8.92,8.84,9.02,9.13,9.54
+All sectors : Nevada,cents per kilowatthour,ELEC.PRICE.NV-ALL.A,7.86,8.42,8.29,8.56,9.02,9.63,9.99,9.89,10.36,9.73,8.97,8.95,9.03,9.73,9.48,8.38,8.76,8.67,8.78,8.33,8.64
+All sectors : New Mexico,cents per kilowatthour,ELEC.PRICE.NM-ALL.A,7.16,6.73,7,7.1,7.51,7.37,7.44,8.35,8.09,8.4,8.74,8.83,9.25,9.65,9.62,9.12,9.59,9.35,8.99,9.33,9.84
+All sectors : Utah,cents per kilowatthour,ELEC.PRICE.UT-ALL.A,5.21,5.39,5.41,5.69,5.92,5.99,6.41,6.49,6.77,6.94,7.13,7.84,8.15,8.35,8.54,8.72,8.6,8.21,8.24,8.27,8.39
+All sectors : Wyoming,cents per kilowatthour,ELEC.PRICE.WY-ALL.A,4.46,4.68,4.76,4.98,5.16,5.27,5.29,5.67,6.08,6.2,6.58,7.19,7.55,7.76,7.97,8.19,8.28,8.09,8.1,8.27,8.25
+All sectors : Pacific Contiguous,,ELEC.PRICE.PCC-ALL.A,,,,,,,,,,,,,,,,,,,,,
+All sectors : California,cents per kilowatthour,ELEC.PRICE.CA-ALL.A,11.22,12.19,11.78,11.35,11.63,12.82,12.8,12.49,13.24,13.01,13.05,13.53,14.3,15.15,15.42,15.23,16.06,16.58,16.89,18,19.76
+All sectors : Oregon,cents per kilowatthour,ELEC.PRICE.OR-ALL.A,5.44,6.32,6.18,6.21,6.34,6.53,7.02,7.24,7.47,7.56,8.04,8.21,8.44,8.68,8.75,8.83,8.81,8.85,8.81,8.82,9.1
+All sectors : Washington,cents per kilowatthour,ELEC.PRICE.WA-ALL.A,5.34,5.88,5.86,5.8,5.87,6.14,6.37,6.55,6.59,6.66,6.78,6.94,7.09,7.13,7.4,7.68,7.94,8,8.04,8.33,8.78
+All sectors : Pacific Noncontiguous,,ELEC.PRICE.PCN-ALL.A,,,,,,,,,,,,,,,,,,,,,
+All sectors : Alaska,cents per kilowatthour,ELEC.PRICE.AK-ALL.A,10.54,10.46,10.5,10.99,11.72,12.84,13.28,14.74,15.09,14.76,16.08,16.33,16.49,17.46,17.59,17.93,19.1,19.36,20.22,19.82,20.05
+All sectors : Hawaii,cents per kilowatthour,ELEC.PRICE.HI-ALL.A,14.05,13.39,14.47,15.7,18.33,20.72,21.29,29.2,21.21,25.12,31.59,34.04,33.26,33.43,26.17,23.87,26.05,29.18,28.72,27.55,30.35

@@ -1,0 +1,206 @@
+---
+title: "results"
+author: "Branden Bohrnsen - UID: 105-923-096"
+date: "2023-11-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(jtools)
+library(vip)
+library(car)
+set.seed(07151129)
+```
+
+```{r}
+p <- read.csv("p.csv")[,2:29]
+
+c1 <- lm(data = p, formula = log(CI) ~ log(Chamber) + factor(State) + factor(Year))
+e1 <- lm(data = p, formula = log(EI) ~ log(Chamber) + factor(State) + factor(Year))
+c2 <- lm(data = p, formula = log(CI_Lag1) ~ log(Chamber) + factor(State) + factor(Year))
+e2 <- lm(data = p, formula = log(EI_Lag1) ~ log(Chamber) + factor(State) + factor(Year))
+
+export_summs(c1, e1, c2, e2, robust = "HC3", model.names = c("Carbon Intensity", "Energy Intensity", "Carbon Intensity, DV Lag k=1", "Energy Intensity, DV Lag k=1"))
+
+vip(c1,scale=TRUE)
+vip(e1,scale=TRUE)
+```
+
+```{r}
+c3 <- lm(data = p, formula = log(CI) ~ log(Chamber) + log(Renewables) + log(NatGas) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(GDPpc) + log(Population))
+e3 <- lm(data = p, formula = log(EI) ~ log(Chamber) + log(Renewables) + log(NatGas) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(GDPpc) + log(Population))
+c4 <- lm(data = p, formula = log(CI_Lag1) ~ log(Chamber) + log(Renewables) + log(NatGas) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(GDPpc) + log(Population))
+e4 <- lm(data = p, formula = log(EI_Lag1) ~ log(Chamber) + log(Renewables) + log(NatGas) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(GDPpc) + log(Population))
+
+plot(c3)
+
+export_summs(c3, e3, c4, e4, model.names = c("Carbon Intensity", "Energy Intensity", "Carbon Intensity, DV Lag k=1", "Energy Intensity, DV Lag k=1"))
+
+plot_summs(c3, e3, c4, e4, model.names = c("Carbon Intensity", "Energy Intensity", "Carbon Intensity, DV Lag k=1", "Energy Intensity, DV Lag k=1"), robust = "HC3")
+
+vif(c3)
+vif(e3)
+vif(c4)
+vif(e4)
+
+vip(c3,scale=TRUE)
+vip(e3,scale=TRUE)
+vip(c4,scale=TRUE)
+vip(e4,scale=TRUE)
+```
+
+```{r}
+c3 <- lm(data = p, formula = log(CI) ~ log(Chamber) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(Renewables) + log(CoalValue) + log(OilValue) + log(NatValue) + log(GDPpc) + log(Population))
+e3 <- lm(data = p, formula = log(EI) ~ log(Chamber) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(Renewables) + log(CoalValue) + log(OilValue) + log(NatValue) + log(GDPpc) + log(Population))
+c4 <- lm(data = p, formula = log(CI_Lag1) ~ log(Chamber) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(Renewables) + log(CoalValue) + log(OilValue) + log(NatValue) + log(GDPpc) + log(Population))
+e4 <- lm(data = p, formula = log(EI_Lag1) ~ log(Chamber) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(Renewables) + log(CoalValue) + log(OilValue) + log(NatValue) + log(GDPpc) + log(Population))
+
+c3 <- lm(data = p, formula = log(CI) ~ log(Chamber) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(RenProd) + log(CoalProd) + log(GDPpc) + log(OilProd) + log(Population))
+e3 <- lm(data = p, formula = log(EI) ~ log(Chamber) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(RenProd) + log(CoalProd) + log(GDPpc) + log(OilProd) + log(Population))
+c4 <- lm(data = p, formula = log(CI_Lag1) ~ log(Chamber) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(RenProd) + log(CoalProd) + log(GDPpc) + log(OilProd) + log(Population))
+e4 <- lm(data = p, formula = log(EI_Lag1) ~ log(Chamber) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(RenProd) + log(CoalProd) + log(GDPpc) + log(OilProd) + log(Population))
+
+c3 <- lm(data = p, formula = log(CI) ~ log(Chamber) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(Renewables) + log(NatGas)+ log(RenProd) + log(CoalProd) + log(OilProd) + log(GDPpc) + log(Population))
+e3 <- lm(data = p, formula = log(EI) ~ log(Chamber) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(Renewables) + log(NatGas)+ log(RenProd) + log(CoalProd) + log(OilProd) + log(GDPpc) + log(Population))
+c4 <- lm(data = p, formula = log(CI_Lag1) ~ log(Chamber) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(Renewables) + log(NatGas)+ log(RenProd) + log(CoalProd) + log(OilProd) + log(GDPpc) + log(Population))
+e4 <- lm(data = p, formula = log(EI_Lag1) ~ log(Chamber) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(Renewables) + log(NatGas)+ log(RenProd) + log(CoalProd) + log(OilProd) + log(GDPpc) + log(Population))
+
+c3 <- lm(data = p, formula = log(CI) ~ log(Chamber) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(Renewables) + log(RenProd) + log(CoalProd) + log(OilProd) + log(GDPpc) + log(Population))
+e3 <- lm(data = p, formula = log(EI) ~ log(Chamber) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(Renewables) + log(RenProd) + log(CoalProd) + log(OilProd) + log(GDPpc) + log(Population))
+c4 <- lm(data = p, formula = log(CI_Lag1) ~ log(Chamber) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(Renewables) + log(RenProd) + log(CoalProd) + log(OilProd) + log(GDPpc) + log(Population))
+e4 <- lm(data = p, formula = log(EI_Lag1) ~ log(Chamber) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(Renewables) + log(RenProd) + log(CoalProd) + log(OilProd) + log(GDPpc) + log(Population))
+
+c3 <- lm(data = p, formula = log(CI) ~ log(Chamber) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(Renewables) + log(CoalPrice) + log(NatPrice) + log(OilPrice) + log(GDPpc) + log(Population))
+e3 <- lm(data = p, formula = log(EI) ~ log(Chamber) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(Renewables) + log(CoalPrice) + log(NatPrice) + log(OilPrice) + log(GDPpc) + log(Population))
+c4 <- lm(data = p, formula = log(CI_Lag1) ~ log(Chamber) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(Renewables) + log(CoalPrice) + log(NatPrice) + log(OilPrice) + log(GDPpc) + log(Population))
+e4 <- lm(data = p, formula = log(EI_Lag1) ~ log(Chamber) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(Renewables) + log(CoalPrice) + log(NatPrice) + log(OilPrice) + log(GDPpc) + log(Population))
+
+plot(c3)
+
+export_summs(c3, e3, c4, e4, model.names = c("Carbon Intensity", "Energy Intensity", "Carbon Intensity, DV Lag k=1", "Energy Intensity, DV Lag k=1"))
+
+plot_summs(c3, e3, c4, e4, model.names = c("Carbon Intensity", "Energy Intensity", "Carbon Intensity, DV Lag k=1", "Energy Intensity, DV Lag k=1"), robust = "HC3")
+
+vif(c3)
+vif(e3)
+vif(c4)
+vif(e4)
+
+vip(c3,scale=TRUE)
+vip(e3,scale=TRUE)
+vip(c4,scale=TRUE)
+vip(e4,scale=TRUE)
+```
+
+
+```{r}
+cooks_c1 <- cooks.distance(c1)
+
+threshold <- 4 / (nrow(p) - length(c1$coefficients) - 1)
+
+influential_points <- which(cooks_c1 > threshold)
+clean_c1 <- p[-influential_points, ]
+
+cooks_e1 <- cooks.distance(e1)
+
+threshold <- 4 / (nrow(p) - length(e1$coefficients) - 1)
+
+influential_points <- which(cooks_e1 > threshold)
+clean_e1 <- p[-influential_points, ]
+
+cooks_c2 <- cooks.distance(c2)
+
+threshold <- 4 / (nrow(p) - length(c2$coefficients) - 2)
+
+influential_points <- which(cooks_c2 > threshold)
+clean_c2 <- p[-influential_points, ]
+
+cooks_e2 <- cooks.distance(e2)
+
+threshold <- 4 / (nrow(p) - length(e2$coefficients) - 2)
+
+influential_points <- which(cooks_e2 > threshold)
+clean_e2 <- p[-influential_points, ]
+
+c1_reduced <- lm(data = clean_c1, formula = log(CI) ~ log(Chamber) + factor(State) + factor(Year))
+e1_reduced <- lm(data = clean_e2, formula = log(EI) ~ log(Chamber) + factor(State) + factor(Year))
+c2_reduced <- lm(data = clean_c1, formula = log(CI_Lag1) ~ log(Chamber) + factor(State) + factor(Year))
+e2_reduced <- lm(data = clean_e2, formula = log(EI_Lag1) ~ log(Chamber) + factor(State) + factor(Year))
+
+export_summs(c1_reduced, e1_reduced, c2_reduced, e2_reduced, robust = "HC3", model.names = c("Carbon Intensity", "Energy Intensity", "Carbon Intensity, DV Lag k=1", "Energy Intensity, DV Lag k=1"))
+```
+
+
+```{r}
+cooks_c3 <- cooks.distance(c3)
+
+threshold <- 4 / (nrow(p) - length(c3$coefficients) - 1)
+
+influential_points <- which(cooks_c3 > threshold)
+clean_c3 <- p[-influential_points, ]
+
+cooks_e3 <- cooks.distance(e3)
+
+threshold <- 4 / (nrow(p) - length(e3$coefficients) - 1)
+
+influential_points <- which(cooks_e3 > threshold)
+clean_e3 <- p[-influential_points, ]
+
+cooks_c4 <- cooks.distance(c4)
+
+threshold <- 4 / (nrow(p) - length(c4$coefficients) - 1)
+
+influential_points <- which(cooks_c4 > threshold)
+clean_c4 <- p[-influential_points, ]
+
+cooks_e4 <- cooks.distance(e4)
+
+threshold <- 4 / (nrow(p) - length(e4$coefficients) - 1)
+
+influential_points <- which(cooks_e4 > threshold)
+clean_e4 <- p[-influential_points, ]
+
+c3_reduced <- lm(data = clean_c3, formula = log(CI) ~ log(Chamber) + log(Renewables) + log(NatGas) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(IncomePC) + log(Population))
+e3_reduced <- lm(data = clean_e3, formula = log(EI) ~ log(Chamber) + log(Renewables) + log(NatGas) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(IncomePC) + log(Population))
+c4_reduced <- lm(data = clean_c4, formula = log(CI_Lag1) ~ log(Chamber) + log(Renewables) + log(NatGas) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(IncomePC) + log(Population))
+e4_reduced <- lm(data = clean_e4, formula = log(EI_Lag1) ~ log(Chamber) + log(Renewables) + log(NatGas) + log(ManuUnion) + log(FarmWages) + log(MiningWages) + log(IncomePC) + log(Population))
+
+plot(c3_reduced)
+plot(e3_reduced)
+
+plot_summs(c3_reduced, e3_reduced, c4_reduced, e4_reduced, model.names = c("Carbon Intensity", "Energy Intensity", "Carbon Intensity, DV Lag k=1", "Energy Intensity, DV Lag k=1"), robust = "HC3")
+
+vif(e3)
+vif(c3)
+vif(e4)
+vif(c4)
+```
+
+```{r}
+plot_summs(c3, c4, c3_reduced, c4_reduced, model.names = c("Carbon Intensity", "Carbon Intensity, DV Lag k=1", "CI Reduced", "CI Reduced, DV Lag k=1"), robust = "HC3")
+
+plot_summs(e3, e4, e3_reduced, e4_reduced, model.names = c("Energy Intensity", "Energy Intensity, DV Lag k=1", "EI Reduced", "EI Reduced, DV Lag k=1"), robust = "HC3")
+```
+
+```{r}
+gam1 <- gam(data = p, formula = log(CI) ~ s(log(Population)) + s(log(GDPCurrent)) + s(log(Chamber)))
+gam2 <- gam(data = p, formula = log(EI) ~ s(log(Population)) + s(log(GDPCurrent)) + s(log(Chamber)))
+gam3 <- gam(data = p, formula = log(CI) ~ s(log(Chamber)))
+gam4 <- gam(data = p, formula = log(CI) ~ s(log(Population)) + s(log(GDPCurrent)) + s(log(Chamber))
+            + s(log(FarmWages)) + s(log(MiningWages)) + s(log(Renewables)) + s(log(NatGas)))
+gam5 <- gam(data = p, formula = log(EI) ~ s(log(Population)) + s(log(GDPCurrent)) + s(log(Chamber))
+            + s(log(FarmWages)) + s(log(MiningWages)))
+summary(gam1)
+summary(gam2)
+summary(gam4)
+summary(gam5)
+
+plot(gam1)
+plot(gam2)
+plot(gam3)
+plot(gam4)
+plot(gam5)
+```
+

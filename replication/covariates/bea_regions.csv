@@ -1,0 +1,52 @@
+fips,state,abb,bea_region_code,bea_region,census_region
+2,Alaska,AK,8,Far West Region,West 
+6,California,CA,8,Far West Region,West 
+15,Hawaii,HI,8,Far West Region,West 
+32,Nevada,NV,8,Far West Region,West 
+41,Oregon,OR,8,Far West Region,West 
+53,Washington,WA,8,Far West Region,West 
+17,Illinois,IL,3,Great Lakes Region,Midwest 
+18,Indiana,IN,3,Great Lakes Region,Midwest 
+26,Michigan,MI,3,Great Lakes Region,Midwest 
+39,Ohio,OH,3,Great Lakes Region,Midwest 
+55,Wisconsin,WI,3,Great Lakes Region,Midwest 
+10,Delaware,DE,2,Mideast Region,South 
+11,District of Columbia,DC,2,Mideast Region,South 
+24,Maryland,MD,2,Mideast Region,South 
+34,New Jersey,NJ,2,Mideast Region,Northeast 
+36,New York,NY,2,Mideast Region,Northeast 
+42,Pennsylvania,PA,2,Mideast Region,Northeast 
+9,Connecticut,CT,1,New England Region,Northeast 
+23,Maine,ME,1,New England Region,Northeast 
+25,Massachusetts,MA,1,New England Region,Northeast 
+33,New Hampshire,NH,1,New England Region,Northeast 
+44,Rhode Island,RI,1,New England Region,Northeast 
+50,Vermont,VT,1,New England Region,Northeast 
+19,Iowa,IA,4,Plains Region,Midwest 
+20,Kansas,KS,4,Plains Region,Midwest 
+27,Minnesota,MN,4,Plains Region,Midwest 
+29,Missouri,MO,4,Plains Region,Midwest 
+31,Nebraska,NE,4,Plains Region,Midwest 
+38,North Dakota,ND,4,Plains Region,Midwest 
+46,South Dakota,SD,4,Plains Region,Midwest 
+8,Colorado,CO,7,Rocky Mountain Region,West 
+16,Idaho,ID,7,Rocky Mountain Region,West 
+30,Montana,MT,7,Rocky Mountain Region,West 
+49,Utah,UT,7,Rocky Mountain Region,West 
+56,Wyoming,WY,7,Rocky Mountain Region,West 
+1,Alabama,AL,5,Southeast Region,South 
+5,Arkansas,AR,5,Southeast Region,South 
+12,Florida,FL,5,Southeast Region,South 
+13,Georgia,GA,5,Southeast Region,South 
+21,Kentucky,KY,5,Southeast Region,South 
+22,Louisiana,LA,5,Southeast Region,South 
+28,Mississippi,MS,5,Southeast Region,South 
+37,North Carolina,NC,5,Southeast Region,South 
+45,South Carolina,SC,5,Southeast Region,South 
+47,Tennessee,TN,5,Southeast Region,South 
+51,Virginia,VA,5,Southeast Region,South 
+54,West Virginia,WV,5,Southeast Region,West 
+4,Arizona,AZ,6,Southwest Region,West 
+35,New Mexico,NM,6,Southwest Region,West 
+40,Oklahoma,OK,6,Southwest Region,West 
+48,Texas,TX,6,Southwest Region,South 

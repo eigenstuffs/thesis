@@ -1,0 +1,310 @@
+---
+title: "prereg"
+author: "Branden Bohrnsen - UID: 105-923-096"
+date: "2023-10-27"
+output: html_document
+---
+
+```{r}
+options(scipen=999)
+library(tidyverse)
+library(haven)
+library(reshape)
+library(plm)
+library(lmtest)
+library(sandwich)
+library(car)
+library(mgcv)
+library(MBESS)
+library(bda)
+library(jtools)
+library(huxtable)
+set.seed(07151129)
+```
+
+```{r}
+ci <- read.csv("data/raw_ci.csv")
+ei <- read.csv("data/raw_ei.csv")
+energy <- read.csv("data/raw_consumption.csv")
+gdpcurrent <- read.csv("data/raw_currentgdp.csv")
+renewables <- read.csv("data/raw_renewables.csv")
+production <- read.csv("data/raw_production.csv")
+prices <- read.csv("data/raw_prices.csv")
+ng <- read.csv("data/raw_ng.csv")
+union <- read.csv("data/raw_union.csv")
+wages <- read.csv("data/raw_wage.csv")
+incpc <- read.csv("data/raw_inc.csv")
+pop <- read.csv("data/raw_pop.csv")
+ideology <- read_dta("data/raw_shormccarty.dta")
+emissions <- read.csv("data/raw_emissions.csv")
+states <- as.data.frame(state.x77)
+
+state_mapping <- data.frame(
+  Full_State = c(
+    "Alabama", "Alaska", "Arizona", "Arkansas", "California",
+    "Colorado", "Connecticut", "Delaware",  "DistrictofColumbia", "Florida", "Georgia",
+    "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa",
+    "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland",
+    "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri",
+    "Montana", "Nebraska", "Nevada", "NewHampshire", "NewJersey",
+    "NewMexico", "NewYork", "NorthCarolina", "NorthDakota", "Ohio",
+    "Oklahoma", "Oregon", "Pennsylvania", "RhodeIsland", "SouthCarolina",
+    "SouthDakota", "Tennessee", "Texas", "Utah", "Vermont",
+    "Virginia", "Washington", "WestVirginia", "Wisconsin", "Wyoming"
+  ),
+  Abbreviation = c(
+    "AL", "AK", "AZ", "AR", "CA",
+    "CO", "CT", "DE", "DC", "FL", "GA",
+    "HI", "ID", "IL", "IN", "IA",
+    "KS", "KY", "LA", "ME", "MD",
+    "MA", "MI", "MN", "MS", "MO",
+    "MT", "NE", "NV", "NH", "NJ",
+    "NM", "NY", "NC", "ND", "OH",
+    "OK", "OR", "PA", "RI", "SC",
+    "SD", "TN", "TX", "UT", "VT",
+    "VA", "WA", "WV", "WI", "WY"
+  )
+)
+```
+
+setting correct dimensions and column names
+
+```{r}
+ci <- ci[5:56,]
+colnames(ci) <- ci[1,]
+ci <- ci[2:52,1:53]
+ei <- ei[2:53,]
+colnames(ei) <- ei[1,]
+ei <- ei[2:52,1:63]
+renewables <- renewables[,1:26]
+colnames(energy) <- energy[2,]
+energy <- energy[3:53,1:63]
+colnames(gdpcurrent) <- gdpcurrent[2,]
+gdpcurrent <- gdpcurrent[3:53,1:26]
+colnames(ng) <- ng[2,]
+ng <- ng[3:53,1:63]
+colnames(union) <- union[2,]
+union <- union[3:10202,]
+colnames(wages) <- wages[3,]
+wages <- wages[4:156,]
+colnames(incpc) <- incpc[3,]
+incpc <- incpc[4:54,2:25]
+colnames(pop) <- pop[2,]
+pop <- pop[3:53,1:63]
+prices <- prices[,c(2:3,32:54)]
+production <- production[,c(2:3,42:64)]
+colnames(prices) <- gsub("X","",colnames(prices))
+colnames(production) <- gsub("X","",colnames(production))
+colnames(emissions) <- emissions[4,]
+emissions <- emissions[5:55,]
+emissions <- emissions[,c(1,30:52)]
+
+total <- wages[wages$LineCode=="50",]
+farm <- wages[wages$LineCode=="81",]
+mining <- wages[wages$LineCode=="200",]
+
+total_prod <- production[production$MSN == "TEPRB",]
+oil_prod <- production[production$MSN == "PAPRB",]
+nat_prod <- production[production$MSN == "NGMPB",]
+ren_prod <- production[production$MSN == "NGMPB",]
+coal_prod <- production[production$MSN == "CLPRB",]
+
+coal_price <- prices[prices$MSN == "CLTCD",]
+nat_price <- prices[prices$MSN == "NGTCD",]
+oil_price <- prices[prices$MSN == "PATCD",]
+
+total_prod <- total_prod %>% select(!MSN)
+oil_prod <- oil_prod %>% select(!MSN)
+nat_prod <- nat_prod %>% select(!MSN)
+ren_prod <- ren_prod %>% select(!MSN)
+coal_prod <- coal_prod %>% select(!MSN)
+
+coal_price <- coal_price %>% select(!MSN)
+nat_price <- nat_price %>% select(!MSN)
+oil_price <- oil_price %>% select(!MSN)
+
+total <- total[,c(2,5:27)]
+farm <- farm[,c(2,5:27)]
+mining <- mining[,c(2,5:27)]
+```
+
+reformatting into panel organization
+
+```{r}
+ci <- melt(ci, id = "State")
+ei <- melt(ei, id = "State")
+energy <- melt(energy, id = "State")
+gdpcurrent <- melt(gdpcurrent, id = "State")
+renewables <- melt(renewables, id = "State")
+ng <- melt(ng, id = "State")
+total <- melt(total, id = "GeoName")
+farm <- melt(farm, id = "GeoName")
+mining <- melt(mining, id = "GeoName")
+pop <- melt(pop, id = "State")
+incpc <- melt(incpc, id = "GeoName")
+union <- union[union$Sector == "Priv. Manufacturing",]
+union <- as.data.frame(cbind(union$State, union$Year, union$`Membership Rate`))
+union$V3 <- as.numeric(gsub("%","",union$V3))/100
+total_prod <- melt(total_prod, id = "StateCode")
+coal_prod <- melt(coal_prod, id = "StateCode")
+ren_prod <- melt(ren_prod, id = "StateCode")
+nat_prod <- melt(nat_prod, id = "StateCode")
+oil_prod <- melt(oil_prod, id = "StateCode")
+coal_price <- melt(coal_price, id = "State")
+nat_price <- melt(nat_price, id = "State")
+oil_price <- melt(oil_price, id = "State")
+emissions <- melt(emissions, id = "State")
+
+list <- list(ci, ei, energy, gdpcurrent, renewables, ng, total, farm, mining, pop, incpc, union, total_prod, coal_prod, ren_prod, nat_prod, oil_prod, coal_price, nat_price, oil_price, emissions)
+```
+
+```{r}
+convert_state_name <- function(state_name) {
+  if (state_name %in% state_mapping$Full_State) {
+    return(state_mapping$Abbreviation[match(state_name, state_mapping$Full_State)])
+  } else {
+    return(state_name)
+  }
+}
+
+p <- data.frame()
+
+list <- lapply(list, function(df) {
+  colnames(df) <- c("State", "Year", "Value")
+  df$State <- gsub("*", "", df$State)
+  df$State <- gsub(" ", "", df$State)
+  df$State <- sapply(df$State, convert_state_name)
+  df$Year <- gsub("X", "", df$Year)
+  df$Year <- as.numeric(df$Year)
+  df$Value <- gsub(",","",df$Value)
+  df$Value <- as.numeric(df$Value)
+  df <- df[df$Year>=1998&df$Year<=2020,]
+  return(df)
+})
+
+list[[11]][list[[11]]$State=="Alaska*",]$State <- "AK"
+list[[11]][list[[11]]$State=="Hawaii*",]$State <- "HI"
+
+p <- Reduce(function(x, y) merge(x, y, by=c("State", "Year"), all = TRUE), list)
+```
+
+```{r}
+ideology <- as.data.frame(cbind(ideology$st, ideology$year, ideology$hou_chamber, ideology$sen_chamber))
+colnames(ideology) <- c("State","Year","House","Senate")
+ideology$House <- as.numeric(ideology$House)
+ideology$Senate <- as.numeric(ideology$Senate)
+ideology$Chamber <- ideology$Senate
+str(ideology)
+
+for (i in 1:nrow(ideology)) {
+  if (!is.na(ideology[i,3]) && !is.na(ideology[i,4])) {
+    ideology[i,5] <- (ideology[i,3] + ideology[i,4])/2
+  }
+}
+
+states$State <- rownames(states)
+states$State <- gsub(" ","",states$State)
+states$State <- sapply(states$State,convert_state_name)
+states <- states[states$State!="DC",]
+states <- subset(states, select = c("State", "Area"))
+ideology <- ideology[ideology$Year >= 1998 & ideology$Year <= 2020,]
+p <- merge(ideology, p, by=c("State","Year"))
+p <- merge(p, states, by="State")
+colnames(p) <- c("State","Year","House","Senate","Chamber","CI","EI","TotalEnergy","GDPCurrent","Renewables","NatGas","TotalWages","FarmWages","MiningWages","Population","IncomePC","ManuUnion","TotalProd","CoalProd","RenProd","GasProd","OilProd","CoalPrice","NatPrice","OilPrice","Emissions","Area")
+p$FarmWages <- (p$FarmWages/p$TotalWages)
+p$MiningWages <- (p$MiningWages/p$TotalWages)
+p$Renewables <- (p$Renewables/p$TotalEnergy)+1
+p$NatGas <- (p$NatGas/p$TotalEnergy)+1
+p$GDPpc <- (p$GDPCurrent/p$Population)
+p$CoalValue <- (p$CoalPrice * p$CoalProd)/p$GDPCurrent
+p$NatValue <- (p$NatPrice * p$GasProd)/p$GDPCurrent
+p$OilValue <- (p$OilPrice * p$OilProd)/p$GDPCurrent
+p$Chamber <- p$Chamber + 10
+p$ManuUnion <- p$ManuUnion + 1
+p$CoalValue <- p$CoalValue + 1
+p$NatValue <- p$NatValue + 1
+p$OilValue <- p$OilValue + 1
+p$RenProd <- (p$RenProd/p$TotalProd)+1
+p$CoalProd <- (p$CoalProd/p$TotalProd)+1
+p$GasProd <- (p$GasProd/p$TotalProd)+1
+p$OilProd <- (p$OilProd/p$TotalProd)+1
+p$CoalPrice <- p$CoalPrice
+p$OilPrice <- p$OilPrice
+p$NatPrice <- p$NatPrice
+
+p <- subset(p, select = c(-House,-Senate,-TotalEnergy,-TotalWages))
+```
+taking natural logs for p
+
+```{r}
+#p$Chamber <- log(p$Chamber)
+#p$CI <- log(p$CI)
+#p$EI <- log(p$EI)
+#p$Renewables <- log(p$Renewables)
+#p$NatGas <- log(p$NatGas)
+#p$FarmWages <- log(p$FarmWages)
+#p$MiningWages <- log(p$MiningWages)
+#p$IncomePC <- log(p$IncomePC)
+#p$ManuUnion <- log(p$ManuUnion)
+#p$Population <- log(p$Population)
+p$CI_Lag1 <- lag(p$CI, 1)
+p$EI_Lag1 <- lag(p$EI, 1)
+p$Emissions_Lag1 <- lag(p$Emissions, 1)
+#p$GDPCurrent <- log(p$GDPCurrent)
+
+write.csv(p, "p.csv")
+
+#p <- as.data.frame(lapply(p, sample))
+```
+
+```{r}
+library(tidyverse)
+library(sf)
+library(tigris)
+pv <- read.csv("data/pv_reference_2020.csv")
+wind <- read.csv("data/Reference_Access_Siting_Regime_ATB_Mid_Turbine.csv")
+
+coordinates_pv <- st_as_sf(pv, coords = c("longitude", "latitude"), crs = 4326)
+coordinates_wind <- st_as_sf(wind, coords = c("longitude", "latitude"), crs = 4326)
+
+states <- states(cb = TRUE) %>% st_transform(crs = st_crs(coordinates_pv))
+pv_with_states <- st_join(coordinates_pv, states)
+
+states <- states(cb = TRUE) %>% st_transform(crs = st_crs(coordinates_wind))
+wind_with_states <- st_join(coordinates_wind, states)
+
+pv_with_states <- pv_with_states %>% select(NAME, capacity_factor, capacity_mw, distance_to_transmission_km, global_horizontal_irradiance, area_sq_km)
+
+wind_with_states <- wind_with_states %>% select(NAME, capacity_factor, capacity_mw, generation_mwh, distance_to_transmission_km, wind_speed_120meters, area_sq_km)
+
+pv_with_states$weighted_GHI <- pv_with_states$global_horizontal_irradiance / pv_with_states$area_sq_km
+wind_with_states$weighted_Speed120m <- wind_with_states$wind_speed_120meters / wind_with_states$area_sq_km
+
+pv_with_states <- pv_with_states %>% group_by(NAME) %>%
+                  summarise(weighted_GHI = mean(weighted_GHI, na.rm = TRUE),
+                            )
+
+wind_with_states <- wind_with_states %>% group_by(NAME) %>%
+                  summarise(weighted_Speed120m = mean(weighted_Speed120m, na.rm = TRUE),
+                            )
+
+p <- read.csv("p.csv")[,2:31]
+
+pv_with_states$NAME <- gsub(" ", "", pv_with_states$NAME)
+wind_with_states$NAME <- gsub(" ", "", wind_with_states$NAME)
+
+pv_with_states$NAME <- sapply(pv_with_states$NAME, convert_state_name)
+wind_with_states$NAME <- sapply(wind_with_states$NAME, convert_state_name)
+
+colnames(pv_with_states) <- c("State", "Weighted_GHI", "geometry")
+colnames(wind_with_states) <- c("State", "Weighted_Speed120m", "geometry")
+
+p <- left_join(p, na.omit(as.data.frame(pv_with_states)) %>% select(-geometry), by = join_by(State))
+p <- left_join(p, na.omit(as.data.frame(wind_with_states)) %>% select(-geometry), by = join_by(State))
+str(pv_with_states)
+
+
+write.csv(p, "p_JAN28.csv")
+
+```
+
