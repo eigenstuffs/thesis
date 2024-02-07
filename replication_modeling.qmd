@@ -1,0 +1,444 @@
+---
+title: "replication_modeling"
+format: html
+editor: visual
+---
+
+### Replication File -- Modeling
+
+```{r}
+options(scipen=999)
+library(tidyverse)
+library(patchwork)
+library(jtools)
+library(stringr)
+library(car)
+set.seed(07151129)
+```
+
+```{r}
+panel <- read.csv("panel_data_FEB6.csv")
+adoption <- read.csv("policy_adoption_FEB7.csv")
+```
+
+Side-by-side plots of variable and log(variable + x) with x being the minimum constant necessary to have all \>= 1
+
+```{r}
+p1 <- ggplot(panel, aes(x=CarbonIntensity)) + geom_histogram(aes(fill=factor(Year))) + theme(legend.position = "none")
+p2 <- ggplot(panel, aes(x=log(CarbonIntensity))) + geom_histogram(aes(fill=factor(Year)))
+
+p1 + p2
+
+p3 <- ggplot(panel, aes(x=EnergyIntensity)) + geom_histogram(aes(fill=factor(Year))) + theme(legend.position = "none")
+p4 <- ggplot(panel, aes(x=log(EnergyIntensity))) + geom_histogram(aes(fill=factor(Year)))
+
+p3 + p4
+
+p5 <- ggplot(panel, aes(x=GDPPerCapita)) + geom_histogram(aes(fill=factor(Year))) + theme(legend.position = "none")
+p6 <- ggplot(panel, aes(x=log(GDPPerCapita))) + geom_histogram(aes(fill=factor(Year)))
+
+p5 + p6
+
+p7 <- ggplot(panel, aes(x=Population)) + geom_histogram(aes(fill=factor(Year))) + theme(legend.position = "none")
+p8 <- ggplot(panel, aes(x=log(Population))) + geom_histogram(aes(fill=factor(Year)))
+
+p7 + p8
+
+p9 <- ggplot(panel, aes(x=PopDens)) + geom_histogram(aes(fill=factor(Year))) + theme(legend.position = "none")
+p10 <- ggplot(panel, aes(x=log(PopDens+1))) + geom_histogram(aes(fill=factor(Year)))
+
+p9 + p10
+
+p11 <- ggplot(panel, aes(x=Weighted_GHI)) + geom_histogram(aes(fill=factor(Year))) + theme(legend.position = "none")
+p12 <- ggplot(panel, aes(x=log(Weighted_GHI+0.90731127))) + geom_histogram(aes(fill=factor(Year)))
+
+p11 + p12
+
+p13 <- ggplot(panel, aes(x=Weighted_Speed120m)) + geom_histogram(aes(fill=factor(Year))) + theme(legend.position = "none")
+p14 <- ggplot(panel, aes(x=log(Weighted_Speed120m+0.8489861))) + geom_histogram(aes(fill=factor(Year)))
+
+p13 + p14
+
+p15 <- ggplot(panel, aes(x=FarmProportion)) + geom_histogram(aes(fill=factor(Year))) + theme(legend.position = "none")
+p16 <- ggplot(panel, aes(x=log(FarmProportion+0.9996999839))) + geom_histogram(aes(fill=factor(Year)))
+
+p15 + p16
+
+p17 <- ggplot(panel, aes(x=PercentUrban)) + geom_histogram(aes(fill=factor(Year))) + theme(legend.position = "none")
+p18 <- ggplot(panel, aes(x=log(PercentUrban))) + geom_histogram(aes(fill=factor(Year)))
+
+p17 + p18
+
+p19 <- ggplot(panel, aes(x=Ideology)) + geom_histogram(aes(fill=factor(Year))) + theme(legend.position = "none")
+p20 <- ggplot(panel, aes(x=log(Ideology+2.3760))) + geom_histogram(aes(fill=factor(Year)))
+
+p19 + p20
+```
+
+Fixed effects models
+
+```{r}
+m1 <- lm(
+  data = panel, log(CarbonIntensity) ~ Ideology + factor(State) + factor(Year)
+)
+
+m2 <- lm(
+  data = panel, log(EnergyIntensity) ~ Ideology + factor(State) + factor(Year)
+)
+
+summary(m1)
+summary(m2)
+```
+
+Multiple linear regressions
+
+```{r}
+m3 <- lm(
+  data = panel, log(CarbonIntensity) ~ Ideology + log(GDPPerCapita) + log(Population) + Weighted_GHI + Weighted_Speed120m + PercentUrban
+)
+
+m4 <- lm(
+  data = panel, log(EnergyIntensity) ~ Ideology + log(GDPPerCapita) + log(Population) + Weighted_GHI + Weighted_Speed120m + PercentUrban
+) 
+
+summary(m3)
+summary(m4)
+
+vif(m3)
+
+cooks_distance_m3 <- cooks.distance(m3)
+influential_m3 <- which(cooks_distance_m3 > (4/(length(cooks_distance_m3)-length(coefficients(m3)))))
+m5 <- update(m3, subset = -influential_m3)
+
+cooks_distance_m4 <- cooks.distance(m4)
+influential_m4 <- which(cooks_distance_m4 > (4/(length(cooks_distance_m4)-length(coefficients(m4)))))
+m6 <- update(m4, subset = -influential_m4)
+
+plot_summs(m3,m4,m5,m6, model.names = c("Carbon Intensity", "Energy Intensity",
+                                        "CI No Influential", "EI No Influential"))
+```
+
+Permutation Inference - Carbon Intensity
+
+```{r}
+baseline_CI_FE <- lm(log(CarbonIntensity) ~ Ideology + factor(State) + factor(Year), data = panel)
+baseline_CI_FE_R2 <- summary(baseline_CI_FE)$r.squared
+
+n_permutations <- 1000
+permuted_stats <- numeric(n_permutations)
+
+for(i in 1:n_permutations) {
+  shuffled_data <- panel
+  shuffled_data$Ideology <- sample(shuffled_data$Ideology)
+  model <- lm(log(CarbonIntensity) ~ Ideology + factor(State) + factor(Year), data=shuffled_data)
+  permuted_stats[i] <- summary(model)$r.squared
+}
+
+ggplot() + geom_histogram(aes(x = permuted_stats, fill = "pink")) + geom_vline(aes(xintercept = baseline_CI_FE_R2))
+
+p_value <- mean(permuted_stats >= baseline_CI_FE_R2)
+p_value
+```
+
+Permutation Inference - Energy Intensity
+
+```{r}
+baseline_EI_FE <- lm(log(EnergyIntensity) ~ Ideology + factor(State) + factor(Year), data = panel)
+baseline_EI_FE_R2 <- summary(baseline_EI_FE)$r.squared
+
+n_permutations <- 1000
+permuted_stats <- numeric(n_permutations)
+
+for(i in 1:n_permutations) {
+  shuffled_data <- panel
+  shuffled_data$Ideology <- sample(shuffled_data$Ideology)
+  model <- lm(log(EnergyIntensity) ~ Ideology + factor(State) + factor(Year), data=shuffled_data)
+  permuted_stats[i] <- summary(model)$r.squared
+}
+
+ggplot() + geom_histogram(aes(x = permuted_stats, fill = "lightblue")) + geom_vline(aes(xintercept = baseline_EI_FE_R2))
+
+p_value <- mean(permuted_stats >= baseline_EI_FE_R2)
+p_value
+```
+
+Preparing for Policy Adoption Permutation Inference
+
+```{r}
+colnames(adoption) <- c("State", "Policy", "Year")
+adoption <- left_join(adoption, panel %>% select(State, Year, Ideology), by = c("State", "Year"))
+adoption$YearsSinceAdoption <- 2024 - adoption$Year
+
+
+carbon_intensity_policies <- c("CommunitySolar", "UtilitiesGHGCap", "FuelSourceDisclosure", "NetMeter", "ResSolarTaxCredit_2","RenewablesOffered_1", "PowerPlantsReport_2", "RPS_1", "PowerPlantsReport_1", "RPS_2", "RPS_3", "ResSolarTaxCredit_1", "RenewablesOffered_2")
+
+energy_intensity_policies <- c("CACarStandards", "ProhibitGasHookupBans", "PublicBuildingStandards", "CompleteStreets_1", "EfficiencyTargets_1", "LowIncomeEff_1", "ElectricDecoupling_1", "GasDecoupling_1","ElectricDecoupling_2", "ElectricDecoupling_3", "GasDecoupling_3", "GasDecoupling_2", "LowIncomeEff_2", "CompleteStreets_2", "EfficiencyTargets_2")
+
+both_policies <- c("ClimateActionPlan", "PublicBenefitFunds", "PerformanceStandards", "PACE", "StateNEPA_1", "GHGTargets_2", "GHGTargets_1", "StateNEPA_2", "w_ghg_targets_21_2")
+
+adoption_CI <- adoption %>% filter(Policy %in% carbon_intensity_policies)
+adoption_EI <- adoption %>% filter(Policy %in% energy_intensity_policies)
+adoption_other <- adoption %>% filter(Policy %in% both_policies)
+```
+
+Stringency Regression - All Policies
+
+```{r}
+count <- adoption %>%
+  arrange(State, Year) %>%
+  group_by(State, Year) %>%
+  mutate(Count = 1) %>%
+  ungroup() %>%
+  group_by(State) %>%
+  mutate(RunningCount = cumsum(Count))
+
+count_highest <- count %>%
+  group_by(State, Year) %>%
+  filter(RunningCount == max(RunningCount)) %>%
+  ungroup()
+
+count_highest <- count_highest %>% select(State, Year, Ideology, RunningCount)
+
+m8 <- lm(data = count_highest,
+         RunningCount ~ Ideology)
+
+summary(m8)
+```
+
+Stringency Regression - Carbon Intensity Policy
+
+```{r}
+count_CI <- adoption_CI %>%
+  arrange(State, Year) %>%
+  group_by(State, Year) %>%
+  mutate(Count = 1) %>%
+  ungroup() %>%
+  group_by(State) %>%
+  mutate(RunningCount = cumsum(Count))
+
+count_highest_CI <- count %>%
+  group_by(State, Year) %>%
+  filter(RunningCount == max(RunningCount)) %>%
+  ungroup()
+
+count_highest_CI <- count_highest_CI %>% select(State, Year, Ideology, RunningCount)
+
+m9 <- lm(data = count_highest_CI,
+         RunningCount ~ Ideology)
+
+summary(m9)
+```
+
+Stringency Regression - Energy Efficiency Policy
+
+```{r}
+count_EE <- adoption_EI %>%
+  arrange(State, Year) %>%
+  group_by(State, Year) %>%
+  mutate(Count = 1) %>%
+  ungroup() %>%
+  group_by(State) %>%
+  mutate(RunningCount = cumsum(Count))
+
+count_highest_EE <- count %>%
+  group_by(State, Year) %>%
+  filter(RunningCount == max(RunningCount)) %>%
+  ungroup()
+
+count_highest_EE <- count_highest_EE %>% select(State, Year, Ideology, RunningCount)
+
+m10 <- lm(data = count_highest_EE,
+         RunningCount ~ Ideology)
+
+summary(m10)
+```
+
+Stringency Index v2 - All Policies
+
+```{r}
+count <- adoption %>%
+  arrange(State, Year) %>%
+  group_by(State, Year) %>%
+  mutate(Count = 1) %>%
+  ungroup() %>%
+  group_by(State) %>%
+  mutate(RunningCount = cumsum(Count))
+
+count_adj <- count
+
+count_adj <- count_adj %>%
+  mutate(Count = if_else(str_starts(Policy, "RPS"), 0.33, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "ResSolarTaxCredit"), 0.5, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "GasDecoupling"), 0.33, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "LowIncomeEff"), .5, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "PowerPlantsReport"), .5, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "ElectricDecoupling"), 0.33, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "EfficiencyTargets"), .5, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "CompleteStreets"), .5, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "StateNEPA"), .5, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "RenewablesOffered"), .5, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "GHGTargets"), .5, Count))
+
+count_adj <- count_adj %>% mutate(RunningCount = cumsum(Count))
+
+count_highest <- count_adj %>%
+  group_by(State, Year) %>%
+  filter(RunningCount == max(RunningCount)) %>%
+  ungroup()
+
+count_highest <- count_highest %>% select(State, Year, Ideology, RunningCount)
+
+m11 <- lm(data = count_highest,
+         RunningCount ~ Ideology)
+
+summary(m11)
+```
+
+Stringency Index v2 - Energy Efficiency Policies
+
+```{r}
+count <- adoption_EI %>%
+  arrange(State, Year) %>%
+  group_by(State, Year) %>%
+  mutate(Count = 1) %>%
+  ungroup() %>%
+  group_by(State) %>%
+  mutate(RunningCount = cumsum(Count))
+
+count_adj <- count
+
+count_adj <- count_adj %>%
+  mutate(Count = if_else(str_starts(Policy, "RPS"), 0.33, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "ResSolarTaxCredit"), 0.5, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "GasDecoupling"), 0.33, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "LowIncomeEff"), .5, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "PowerPlantsReport"), .5, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "ElectricDecoupling"), 0.33, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "EfficiencyTargets"), .5, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "CompleteStreets"), .5, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "StateNEPA"), .5, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "RenewablesOffered"), .5, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "GHGTargets"), .5, Count))
+
+count_adj <- count_adj %>% mutate(RunningCount = cumsum(Count))
+
+count_highest <- count_adj %>%
+  group_by(State, Year) %>%
+  filter(RunningCount == max(RunningCount)) %>%
+  ungroup()
+
+count_highest <- count_highest %>% select(State, Year, Ideology, RunningCount)
+
+m13 <- lm(data = count_highest,
+         RunningCount ~ Ideology)
+
+summary(m13)
+```
+
+Stringency Index v2 - Carbon Intensity Policy
+
+```{r}
+count <- adoption_CI %>%
+  arrange(State, Year) %>%
+  group_by(State, Year) %>%
+  mutate(Count = 1) %>%
+  ungroup() %>%
+  group_by(State) %>%
+  mutate(RunningCount = cumsum(Count))
+
+count_adj <- count
+
+count_adj <- count_adj %>%
+  mutate(Count = if_else(str_starts(Policy, "RPS"), 0.33, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "ResSolarTaxCredit"), 0.5, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "GasDecoupling"), 0.33, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "LowIncomeEff"), .5, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "PowerPlantsReport"), .5, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "ElectricDecoupling"), 0.33, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "EfficiencyTargets"), .5, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "CompleteStreets"), .5, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "StateNEPA"), .5, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "RenewablesOffered"), .5, Count)) %>%
+  mutate(Count = if_else(str_starts(Policy, "GHGTargets"), .5, Count))
+
+count_adj <- count_adj %>% mutate(RunningCount = cumsum(Count))
+
+count_highest <- count_adj %>%
+  group_by(State, Year) %>%
+  filter(RunningCount == max(RunningCount)) %>%
+  ungroup()
+
+count_highest <- count_highest %>% select(State, Year, Ideology, RunningCount)
+
+m12 <- lm(data = count_highest,
+         RunningCount ~ Ideology)
+
+summary(m12)
+```
+
+Permutation Inference - Climate Policy
+
+```{r}
+baseline_all <- lm(YearsSinceAdoption ~ Ideology, data = adoption)
+baseline_all_R2 <- summary(baseline_all)$r.squared
+
+n_permutations <- 1000
+permuted_stats <- numeric(n_permutations)
+
+for(i in 1:n_permutations) {
+  shuffled_data <- adoption
+  shuffled_data$Ideology <- sample(adoption$Ideology)
+  model <- lm(YearsSinceAdoption ~ Ideology, data = shuffled_data)
+  permuted_stats[i] <- summary(model)$r.squared
+}
+
+ggplot() + geom_histogram(aes(x = permuted_stats, fill = "lightgreen")) + geom_vline(aes(xintercept = baseline_all_R2))
+
+
+p_value <- mean(permuted_stats >= baseline_all_R2)
+p_value
+```
+
+Permutation Inference - Carbon Intensity Policy
+
+```{r}
+baseline_CI <- lm(YearsSinceAdoption ~ Ideology, data = adoption_CI)
+baseline_CI_R2 <- summary(baseline_CI)$r.squared
+
+n_permutations <- 1000
+permuted_stats <- numeric(n_permutations)
+
+for(i in 1:n_permutations) {
+  shuffled_data <- adoption_CI
+  shuffled_data$Ideology <- sample(adoption_CI$Ideology)
+  model <- lm(YearsSinceAdoption ~ Ideology, data = shuffled_data)
+  permuted_stats[i] <- summary(model)$r.squared
+}
+
+ggplot() + geom_histogram(aes(x = permuted_stats, fill = "pink")) + geom_vline(aes(xintercept = baseline_CI_R2))
+
+p_value <- mean(permuted_stats >= baseline_CI_R2)
+p_value
+```
+
+Permutation Inference - Energy Efficiency Policy
+
+```{r}
+baseline_EE <- lm(YearsSinceAdoption ~ Ideology, data = adoption_EI)
+baseline_EE_R2 <- summary(baseline_EE)$r.squared
+
+n_permutations <- 1000
+permuted_stats <- numeric(n_permutations)
+
+for(i in 1:n_permutations) {
+  shuffled_data <- adoption_EI
+  shuffled_data$Ideology <- sample(adoption_EI$Ideology)
+  model <- lm(YearsSinceAdoption ~ Ideology, data = shuffled_data)
+  permuted_stats[i] <- summary(model)$r.squared
+}
+
+ggplot() + geom_histogram(aes(x = permuted_stats, fill = "lightblue")) + geom_vline(aes(xintercept = baseline_EE_R2))
+
+p_value <- mean(permuted_stats >= baseline_EE_R2)
+p_value
+```

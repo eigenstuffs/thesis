@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ESRI_ItemInformation Culture='en-US'>
+<name>USA Urban Areas</name>
+<guid>D672D33D-258B-4A85-9878-2129FC14AA92</guid>
+<catalogpath></catalogpath>
+<snippet>U.S. Census Urban Areas provides the boundaries, and 2020 U.S. Census names, codes, populations, and housing information for the urban areas of the United States.</snippet>
+<description>U.S. Census Urban Areas provides the boundaries, and 2020 U.S. Census names, codes, populations, and housing information for the urban areas of the United States.
+
+U.S. Census Urban Areas represents the 2020 U.S. Census urban areas of the United States. The Census Bureau delineates urban areas after each decennial census by applying specified criteria to the decennial census and other data. An urban area comprises a densely settled core of census blocks that meet minimum housing unit density or population density requirements. This includes adjacent territory containing non-residential urban land uses. To qualify as an urban area, the territory identified according to criteria must encompass at least 2,000 housing units or have a population of at least 5,000. Urban areas represent densely developed territory, and encompass residential, commercial, and other non-residential urban land uses.</description>
+<summary>U.S. Census Urban Areas provides the boundaries, and 2020 U.S. Census names, codes, populations, and housing information for the urban areas of the United States.</summary>
+<title>USA Urban Areas</title>
+<tags>layer, polygon, urban areas, urbanized areas, urban clusters, cities, population, housing units, location, society, boundaries, United States, Puerto Rico, U.S. Virgin Islands, American Samoa, Guam, Northern Mariana Islands, 2020</tags>
+<type>Layer Package</type>
+<typekeywords>
+<typekeyword>File Geodatabase Feature Class</typekeyword>
+<typekeyword>Layer Package</typekeyword>
+<typekeyword>Data</typekeyword>
+<typekeyword>ArcMap</typekeyword>
+<typekeyword>ArcGlobe</typekeyword>
+<typekeyword>ArcGIS Explorer</typekeyword>
+<typekeyword>lpk</typekeyword>
+</typekeywords>
+<thumbnail>thumbnail/thumbnail.png</thumbnail>
+<documentation></documentation>
+<url></url>
+<datalastmodifiedtime></datalastmodifiedtime>
+<extent>
+<xmin>-170.789327563</xmin>
+<ymin>-14.365411482</ymin>
+<xmax>145.791569009</xmax>
+<ymax>64.9288947810001</ymax>
+</extent>
+<spatialreference>GCS_WGS_1984</spatialreference>
+<accessinformation>Esri; U.S. Department of Commerce, Census Bureau</accessinformation>
+<licenseinfo>The datasets included within ArcGIS Data and Maps are subject to varying redistribution rights that have been granted by Esri’s third party data suppliers. Consult the Redistribution Rights document to determine the ways in which Licensee is permitted to use and redistribute each specific dataset and the applicable disclaimers, attribution requirements, and other conditions of use.</licenseinfo>
+</ESRI_ItemInformation>

@@ -1,0 +1,255 @@
+---
+title: "replication_preprocessing"
+author: "Branden Bohrnsen"
+date: "6 February 2024"
+format: html
+editor: visual
+---
+
+### Replication File - Data Preprocessing
+
+Loading libraries
+
+```{r}
+options(scipen=999)
+library(tidyverse)
+library(haven)
+library(reshape)
+library(sf)
+library(tigris)
+library(zoo)
+set.seed(07151129)
+```
+
+Reading all files as they were downloaded
+
+```{r}
+ci <- read.csv("data/raw_ci.csv")
+ei <- read.csv("data/raw_ei.csv")
+gdpcurrent <- read.csv("data/raw_currentgdp.csv")
+pop <- read.csv("data/raw_pop.csv")
+ideology <- read_dta("data/raw_shormccarty.dta")
+wages <- read.csv("data/raw_wage.csv")
+urban <- read.csv("data/raw_urban.csv")
+states <- as.data.frame(state.x77)
+```
+
+State mapping to harmonize state columns
+
+```{r}
+state_mapping <- data.frame(
+  Full_State = c(
+    "Alabama", "Alaska", "Arizona", "Arkansas", "California",
+    "Colorado", "Connecticut", "Delaware",  "DistrictofColumbia", "Florida", "Georgia",
+    "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa",
+    "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland",
+    "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri",
+    "Montana", "Nebraska", "Nevada", "NewHampshire", "NewJersey",
+    "NewMexico", "NewYork", "NorthCarolina", "NorthDakota", "Ohio",
+    "Oklahoma", "Oregon", "Pennsylvania", "RhodeIsland", "SouthCarolina",
+    "SouthDakota", "Tennessee", "Texas", "Utah", "Vermont",
+    "Virginia", "Washington", "WestVirginia", "Wisconsin", "Wyoming"
+  ),
+  Abbreviation = c(
+    "AL", "AK", "AZ", "AR", "CA",
+    "CO", "CT", "DE", "DC", "FL", "GA",
+    "HI", "ID", "IL", "IN", "IA",
+    "KS", "KY", "LA", "ME", "MD",
+    "MA", "MI", "MN", "MS", "MO",
+    "MT", "NE", "NV", "NH", "NJ",
+    "NM", "NY", "NC", "ND", "OH",
+    "OK", "OR", "PA", "RI", "SC",
+    "SD", "TN", "TX", "UT", "VT",
+    "VA", "WA", "WV", "WI", "WY"
+  )
+)
+
+convert_state_name <- function(state_name) {
+  if (state_name %in% state_mapping$Full_State) {
+    return(state_mapping$Abbreviation[match(state_name, state_mapping$Full_State)])
+  } else {
+    return(state_name)
+  }
+}
+```
+
+Subsetting, renaming columns, and reshaping to long format
+
+```{r}
+ci <- ci[5:56,]
+colnames(ci) <- ci[1,]
+ci <- ci[2:52,1:53]
+ei <- ei[2:53,]
+colnames(ei) <- ei[1,]
+ei <- ei[2:52,1:63]
+colnames(wages) <- wages[3,]
+wages <- wages[4:156,]
+
+urban <- urban %>% select(STATE.ABBREV, X2020.PCT.URBAN.POP, X2010.PCT.URBAN.POP)
+colnames(urban) <- c("State", "2020", "2010")
+urban <- urban %>% filter(State %in% state_mapping$Abbreviation)
+urban <- melt(urban, "State")
+colnames(urban) <- c("State", "Year", "PercentUrban")
+
+
+total <- wages[wages$LineCode=="50",]
+farm <- wages[wages$LineCode=="81",]
+
+colnames(gdpcurrent) <- gdpcurrent[2,]
+gdpcurrent <- gdpcurrent[3:53,1:26]
+
+colnames(pop) <- pop[2,]
+pop <- pop[3:53,1:63]
+
+ci <- melt(ci, id = "State")
+ei <- melt(ei, id = "State")
+
+gdpcurrent <- melt(gdpcurrent, id = "State")
+
+pop <- melt(pop, id = "State")
+
+colnames(ci) <- c("State", "Year", "CarbonIntensity")
+colnames(ei) <- c("State", "Year", "EnergyIntensity")
+colnames(gdpcurrent) <- c("State", "Year", "RealGDP")
+colnames(pop) <- c("State", "Year", "Population")
+
+total <- total[,c(2,5:27)]
+farm <- farm[,c(2,5:27)]
+
+total <- melt(total, id = "GeoName")
+farm <- melt(farm, id = "GeoName")
+
+colnames(total) <- c("State", "Year", "TotalWages")
+colnames(farm) <- c("State", "Year", "FarmWages")
+
+list <- list(ci, ei, gdpcurrent, pop, farm, total, urban)
+```
+
+Applying transformations to data types and merging
+
+```{r}
+p <- data.frame()
+
+list <- lapply(list, function(df) {
+  df$State <- gsub("*", "", df$State)
+  df$State <- gsub(" ", "", df$State)
+  df$State <- sapply(df$State, convert_state_name)
+  df$Year <- gsub("X", "", df$Year)
+  df$Year <- as.numeric(df$Year)
+  df[,3] <- gsub(",","",df[,3])
+  df[,3] <- as.numeric(df[,3])
+  df <- df[df$Year>=1998&df$Year<=2020,]
+  return(df)
+})
+
+p <- Reduce(function(x, y) merge(x, y, by=c("State", "Year"), all = TRUE), list)
+
+p <- p %>% filter(State != "DC")
+```
+
+Getting average chamber ideology
+
+```{r}
+ideology <- as.data.frame(cbind(ideology$st, ideology$year, ideology$hou_chamber, ideology$sen_chamber))
+colnames(ideology) <- c("State","Year","House","Senate")
+ideology$House <- as.numeric(ideology$House)
+ideology$Senate <- as.numeric(ideology$Senate)
+ideology$Ideology <- ideology$Senate # All states have a Senate
+
+for (i in 1:nrow(ideology)) {
+  if (!is.na(ideology[i,3]) && !is.na(ideology[i,4])) {
+    ideology[i,5] <- (ideology[i,3] + ideology[i,4])/2 # Average if we have both chambers
+  }
+}
+
+ideology <- ideology[ideology$Year >= 1998 & ideology$Year <= 2020,]
+
+ideology <- ideology %>% select(-House, -Senate)
+
+p <- merge(ideology, p, by=c("State","Year"))
+```
+
+Getting state areas and joining
+
+```{r}
+states$State <- rownames(states)
+states$State <- gsub(" ","",states$State)
+states$State <- sapply(states$State,convert_state_name)
+states <- states[states$State!="DC",]
+states <- subset(states, select = c("State", "Area"))
+
+p <- merge(p, states, by="State")
+```
+
+Creating variables
+
+```{r}
+p$GDPPerCapita <- p$RealGDP/p$Population
+p$FarmProportion <- p$FarmWages/p$TotalWages
+p$PopDens <- p$Population/p$Area
+
+p <- p %>%
+  group_by(State) %>%
+  arrange(State, Year) %>%
+  mutate(across(starts_with("PercentUrb"), ~na.locf(.x, fromLast = TRUE, na.rm = FALSE))) %>%
+  ungroup()
+
+p <- p %>% select(-Area, -TotalWages, -FarmWages)
+```
+
+Loading spatial data
+
+```{r}
+pv <- read.csv("data/pv_reference_2020.csv")
+wind <- read.csv("data/Reference_Access_Siting_Regime_ATB_Mid_Turbine.csv")
+```
+
+Convert to SimpleFeatures, join by state
+
+```{r}
+coordinates_pv <- st_as_sf(pv, coords = c("longitude", "latitude"), crs = 4326)
+coordinates_wind <- st_as_sf(wind, coords = c("longitude", "latitude"), crs = 4326)
+
+states <- states(cb = TRUE) %>% st_transform(crs = st_crs(coordinates_pv))
+pv_with_states <- st_join(coordinates_pv, states)
+
+states <- states(cb = TRUE) %>% st_transform(crs = st_crs(coordinates_wind))
+wind_with_states <- st_join(coordinates_wind, states)
+
+pv_with_states <- pv_with_states %>% select(NAME, capacity_factor, capacity_mw, distance_to_transmission_km, global_horizontal_irradiance, area_sq_km)
+
+wind_with_states <- wind_with_states %>% select(NAME, capacity_factor, capacity_mw, generation_mwh, distance_to_transmission_km, wind_speed_120meters, area_sq_km)
+```
+
+Get average irradiance/speed of each state (constant)
+
+```{r}
+pv_with_states$weighted_GHI <- pv_with_states$global_horizontal_irradiance / pv_with_states$area_sq_km
+wind_with_states$weighted_Speed120m <- wind_with_states$wind_speed_120meters / wind_with_states$area_sq_km
+
+pv_with_states <- pv_with_states %>% group_by(NAME) %>%
+                  summarise(weighted_GHI = mean(weighted_GHI, na.rm = TRUE),
+                            )
+
+wind_with_states <- wind_with_states %>% group_by(NAME) %>%
+                  summarise(weighted_Speed120m = mean(weighted_Speed120m, na.rm = TRUE),
+                            )
+
+pv_with_states$NAME <- gsub(" ", "", pv_with_states$NAME)
+wind_with_states$NAME <- gsub(" ", "", wind_with_states$NAME)
+
+pv_with_states$NAME <- sapply(pv_with_states$NAME, convert_state_name)
+wind_with_states$NAME <- sapply(wind_with_states$NAME, convert_state_name)
+
+colnames(pv_with_states) <- c("State", "Weighted_GHI", "geometry")
+colnames(wind_with_states) <- c("State", "Weighted_Speed120m", "geometry")
+
+p <- left_join(p, na.omit(as.data.frame(pv_with_states)) %>% select(-geometry), by = join_by(State))
+p <- left_join(p, na.omit(as.data.frame(wind_with_states)) %>% select(-geometry), by = join_by(State))
+```
+
+Export panel data as csv
+
+```{r}
+write.csv(p, "panel_data_FEB6.csv", row.names = FALSE)
+```

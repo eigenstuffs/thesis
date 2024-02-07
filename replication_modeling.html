@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.433">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>replication_modeling</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="replication_modeling_files/libs/clipboard/clipboard.min.js"></script>
+<script src="replication_modeling_files/libs/quarto-html/quarto.js"></script>
+<script src="replication_modeling_files/libs/quarto-html/popper.min.js"></script>
+<script src="replication_modeling_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="replication_modeling_files/libs/quarto-html/anchor.min.js"></script>
+<link href="replication_modeling_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="replication_modeling_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="replication_modeling_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="replication_modeling_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="replication_modeling_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">replication_modeling</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="replication-file-modeling" class="level3">
+<h3 class="anchored" data-anchor-id="replication-file-modeling">Replication File – Modeling</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">scipen=</span><span class="dv">999</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.1.4     ✔ readr     2.1.4
+✔ forcats   1.0.0     ✔ stringr   1.5.1
+✔ ggplot2   3.4.4     ✔ tibble    3.2.1
+✔ lubridate 1.9.3     ✔ tidyr     1.3.1
+✔ purrr     1.0.2     
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(patchwork)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(jtools)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(stringr)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(car)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: carData
+
+Attaching package: 'car'
+
+The following object is masked from 'package:dplyr':
+
+    recode
+
+The following object is masked from 'package:purrr':
+
+    some</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">07151129</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>panel <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"panel_data_FEB6.csv"</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>adoption <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"policy_adoption_FEB7.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Side-by-side plots of variable and log(variable + x) with x being the minimum constant necessary to have all &gt;= 1</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(panel, <span class="fu">aes</span>(<span class="at">x=</span>CarbonIntensity)) <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">fill=</span><span class="fu">factor</span>(Year))) <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>p2 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(panel, <span class="fu">aes</span>(<span class="at">x=</span><span class="fu">log</span>(CarbonIntensity))) <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">fill=</span><span class="fu">factor</span>(Year)))</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>p1 <span class="sc">+</span> p2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="replication_modeling_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>p3 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(panel, <span class="fu">aes</span>(<span class="at">x=</span>EnergyIntensity)) <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">fill=</span><span class="fu">factor</span>(Year))) <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>p4 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(panel, <span class="fu">aes</span>(<span class="at">x=</span><span class="fu">log</span>(EnergyIntensity))) <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">fill=</span><span class="fu">factor</span>(Year)))</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>p3 <span class="sc">+</span> p4</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="replication_modeling_files/figure-html/unnamed-chunk-3-2.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>p5 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(panel, <span class="fu">aes</span>(<span class="at">x=</span>GDPPerCapita)) <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">fill=</span><span class="fu">factor</span>(Year))) <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>p6 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(panel, <span class="fu">aes</span>(<span class="at">x=</span><span class="fu">log</span>(GDPPerCapita))) <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">fill=</span><span class="fu">factor</span>(Year)))</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>p5 <span class="sc">+</span> p6</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="replication_modeling_files/figure-html/unnamed-chunk-3-3.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>p7 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(panel, <span class="fu">aes</span>(<span class="at">x=</span>Population)) <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">fill=</span><span class="fu">factor</span>(Year))) <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>p8 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(panel, <span class="fu">aes</span>(<span class="at">x=</span><span class="fu">log</span>(Population))) <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">fill=</span><span class="fu">factor</span>(Year)))</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>p7 <span class="sc">+</span> p8</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="replication_modeling_files/figure-html/unnamed-chunk-3-4.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>p9 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(panel, <span class="fu">aes</span>(<span class="at">x=</span>PopDens)) <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">fill=</span><span class="fu">factor</span>(Year))) <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>p10 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(panel, <span class="fu">aes</span>(<span class="at">x=</span><span class="fu">log</span>(PopDens<span class="sc">+</span><span class="dv">1</span>))) <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">fill=</span><span class="fu">factor</span>(Year)))</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>p9 <span class="sc">+</span> p10</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="replication_modeling_files/figure-html/unnamed-chunk-3-5.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>p11 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(panel, <span class="fu">aes</span>(<span class="at">x=</span>Weighted_GHI)) <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">fill=</span><span class="fu">factor</span>(Year))) <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>p12 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(panel, <span class="fu">aes</span>(<span class="at">x=</span><span class="fu">log</span>(Weighted_GHI<span class="fl">+0.90731127</span>))) <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">fill=</span><span class="fu">factor</span>(Year)))</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>p11 <span class="sc">+</span> p12</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 46 rows containing non-finite values (`stat_bin()`).</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 46 rows containing non-finite values (`stat_bin()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="replication_modeling_files/figure-html/unnamed-chunk-3-6.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>p13 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(panel, <span class="fu">aes</span>(<span class="at">x=</span>Weighted_Speed120m)) <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">fill=</span><span class="fu">factor</span>(Year))) <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>p14 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(panel, <span class="fu">aes</span>(<span class="at">x=</span><span class="fu">log</span>(Weighted_Speed120m<span class="fl">+0.8489861</span>))) <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">fill=</span><span class="fu">factor</span>(Year)))</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>p13 <span class="sc">+</span> p14</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 46 rows containing non-finite values (`stat_bin()`).</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 46 rows containing non-finite values (`stat_bin()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="replication_modeling_files/figure-html/unnamed-chunk-3-7.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>p15 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(panel, <span class="fu">aes</span>(<span class="at">x=</span>FarmProportion)) <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">fill=</span><span class="fu">factor</span>(Year))) <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>p16 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(panel, <span class="fu">aes</span>(<span class="at">x=</span><span class="fu">log</span>(FarmProportion<span class="fl">+0.9996999839</span>))) <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">fill=</span><span class="fu">factor</span>(Year)))</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>p15 <span class="sc">+</span> p16</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="replication_modeling_files/figure-html/unnamed-chunk-3-8.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>p17 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(panel, <span class="fu">aes</span>(<span class="at">x=</span>PercentUrban)) <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">fill=</span><span class="fu">factor</span>(Year))) <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>p18 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(panel, <span class="fu">aes</span>(<span class="at">x=</span><span class="fu">log</span>(PercentUrban))) <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">fill=</span><span class="fu">factor</span>(Year)))</span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>p17 <span class="sc">+</span> p18</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="replication_modeling_files/figure-html/unnamed-chunk-3-9.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>p19 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(panel, <span class="fu">aes</span>(<span class="at">x=</span>Ideology)) <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">fill=</span><span class="fu">factor</span>(Year))) <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"none"</span>)</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>p20 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(panel, <span class="fu">aes</span>(<span class="at">x=</span><span class="fu">log</span>(Ideology<span class="fl">+2.3760</span>))) <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">fill=</span><span class="fu">factor</span>(Year)))</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>p19 <span class="sc">+</span> p20</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 16 rows containing non-finite values (`stat_bin()`).</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 16 rows containing non-finite values (`stat_bin()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="replication_modeling_files/figure-html/unnamed-chunk-3-10.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>Fixed effects models</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>m1 <span class="ot">&lt;-</span> <span class="fu">lm</span>(</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> panel, <span class="fu">log</span>(CarbonIntensity) <span class="sc">~</span> Ideology <span class="sc">+</span> <span class="fu">factor</span>(State) <span class="sc">+</span> <span class="fu">factor</span>(Year)</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>m2 <span class="ot">&lt;-</span> <span class="fu">lm</span>(</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> panel, <span class="fu">log</span>(EnergyIntensity) <span class="sc">~</span> Ideology <span class="sc">+</span> <span class="fu">factor</span>(State) <span class="sc">+</span> <span class="fu">factor</span>(Year)</span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = log(CarbonIntensity) ~ Ideology + factor(State) + 
+    factor(Year), data = panel)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.223759 -0.020215  0.000178  0.024011  0.175126 
+
+Coefficients:
+                   Estimate Std. Error t value             Pr(&gt;|t|)    
+(Intercept)       4.1101630  0.0109689 374.709 &lt; 0.0000000000000002 ***
+Ideology          0.0042517  0.0046074   0.923             0.356328    
+factor(State)AL  -0.0909491  0.0126069  -7.214   0.0000000000010307 ***
+factor(State)AR  -0.0522889  0.0126091  -4.147   0.0000363873733048 ***
+factor(State)AZ  -0.0682848  0.0126038  -5.418   0.0000000746453113 ***
+factor(State)CA  -0.1003454  0.0148050  -6.778   0.0000000000202026 ***
+factor(State)CO   0.1276210  0.0131845   9.680 &lt; 0.0000000000000002 ***
+factor(State)CT  -0.1884482  0.0143091 -13.170 &lt; 0.0000000000000002 ***
+factor(State)DE   0.1316454  0.0132918   9.904 &lt; 0.0000000000000002 ***
+factor(State)FL   0.0317832  0.0126146   2.520             0.011896 *  
+factor(State)GA  -0.0223013  0.0126009  -1.770             0.077044 .  
+factor(State)HI   0.1687788  0.0139141  12.130 &lt; 0.0000000000000002 ***
+factor(State)IA  -0.0071814  0.0127864  -0.562             0.574478    
+factor(State)ID  -0.3605241  0.0126512 -28.497 &lt; 0.0000000000000002 ***
+factor(State)IL  -0.1148709  0.0130416  -8.808 &lt; 0.0000000000000002 ***
+factor(State)IN   0.2425268  0.0128822  18.827 &lt; 0.0000000000000002 ***
+factor(State)KS   0.0365362  0.0126160   2.896             0.003857 ** 
+factor(State)KY   0.2561894  0.0147717  17.343 &lt; 0.0000000000000002 ***
+factor(State)LA  -0.1523395  0.0126073 -12.083 &lt; 0.0000000000000002 ***
+factor(State)MA   0.0119355  0.0144811   0.824             0.410005    
+factor(State)MD   0.0137673  0.0139338   0.988             0.323351    
+factor(State)ME  -0.3282470  0.0132756 -24.726 &lt; 0.0000000000000002 ***
+factor(State)MI   0.0107681  0.0126086   0.854             0.393285    
+factor(State)MN  -0.0563071  0.0129506  -4.348   0.0000150708641438 ***
+factor(State)MO   0.1952555  0.0126443  15.442 &lt; 0.0000000000000002 ***
+factor(State)MS  -0.0451462  0.0126008  -3.583             0.000355 ***
+factor(State)MT   0.0281704  0.0126026   2.235             0.025606 *  
+factor(State)NC  -0.0433831  0.0126713  -3.424             0.000641 ***
+factor(State)ND   0.2562320  0.0127513  20.095 &lt; 0.0000000000000002 ***
+factor(State)NE  -0.0146683  0.0126016  -1.164             0.244685    
+factor(State)NH  -0.3186510  0.0127599 -24.973 &lt; 0.0000000000000002 ***
+factor(State)NJ  -0.1032085  0.0139179  -7.416   0.0000000000002474 ***
+factor(State)NM   0.1675715  0.0134713  12.439 &lt; 0.0000000000000002 ***
+factor(State)NV   0.0425142  0.0129702   3.278             0.001080 ** 
+factor(State)NY  -0.1646788  0.0138729 -11.871 &lt; 0.0000000000000002 ***
+factor(State)OH   0.1451165  0.0126323  11.488 &lt; 0.0000000000000002 ***
+factor(State)OK   0.0553081  0.0126592   4.369   0.0000137054121977 ***
+factor(State)OR  -0.4434810  0.0132405 -33.494 &lt; 0.0000000000000002 ***
+factor(State)PA  -0.0272441  0.0126605  -2.152             0.031630 *  
+factor(State)RI  -0.0019771  0.0133451  -0.148             0.882253    
+factor(State)SC  -0.2498541  0.0126038 -19.824 &lt; 0.0000000000000002 ***
+factor(State)SD  -0.2417686  0.0126289 -19.144 &lt; 0.0000000000000002 ***
+factor(State)TN  -0.0338477  0.0126011  -2.686             0.007342 ** 
+factor(State)TX  -0.0954728  0.0126524  -7.546   0.0000000000000965 ***
+factor(State)UT   0.2318934  0.0126375  18.350 &lt; 0.0000000000000002 ***
+factor(State)VA  -0.0451796  0.0126580  -3.569             0.000374 ***
+factor(State)VT  -0.5152323  0.0135147 -38.124 &lt; 0.0000000000000002 ***
+factor(State)WA  -0.4641892  0.0133604 -34.744 &lt; 0.0000000000000002 ***
+factor(State)WI   0.0221623  0.0126221   1.756             0.079404 .  
+factor(State)WV   0.3470358  0.0128764  26.951 &lt; 0.0000000000000002 ***
+factor(State)WY   0.3048180  0.0126050  24.182 &lt; 0.0000000000000002 ***
+factor(Year)1999 -0.0097837  0.0083921  -1.166             0.243944    
+factor(Year)2000  0.0061663  0.0083463   0.739             0.460192    
+factor(Year)2001  0.0196531  0.0083456   2.355             0.018709 *  
+factor(Year)2002  0.0073203  0.0083457   0.877             0.380612    
+factor(Year)2003  0.0191915  0.0083482   2.299             0.021705 *  
+factor(Year)2004  0.0162701  0.0083486   1.949             0.051579 .  
+factor(Year)2005  0.0133547  0.0083457   1.600             0.109852    
+factor(Year)2006  0.0001823  0.0083457   0.022             0.982574    
+factor(Year)2007  0.0006216  0.0083606   0.074             0.940745    
+factor(Year)2008 -0.0161838  0.0083632  -1.935             0.053242 .  
+factor(Year)2009 -0.0415546  0.0085114  -4.882   0.0000012098753839 ***
+factor(Year)2010 -0.0461028  0.0086138  -5.352   0.0000001064521347 ***
+factor(Year)2011 -0.0708043  0.0084103  -8.419 &lt; 0.0000000000000002 ***
+factor(Year)2012 -0.0863867  0.0084144 -10.266 &lt; 0.0000000000000002 ***
+factor(Year)2013 -0.0873273  0.0083963 -10.401 &lt; 0.0000000000000002 ***
+factor(Year)2014 -0.0915057  0.0083968 -10.898 &lt; 0.0000000000000002 ***
+factor(Year)2015 -0.1004500  0.0084437 -11.897 &lt; 0.0000000000000002 ***
+factor(Year)2016 -0.1132525  0.0084482 -13.406 &lt; 0.0000000000000002 ***
+factor(Year)2017 -0.1257942  0.0084412 -14.902 &lt; 0.0000000000000002 ***
+factor(Year)2018 -0.1270589  0.0083920 -15.140 &lt; 0.0000000000000002 ***
+factor(Year)2019 -0.1407178  0.0083534 -16.846 &lt; 0.0000000000000002 ***
+factor(Year)2020 -0.1763769  0.0083487 -21.126 &lt; 0.0000000000000002 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.04173 on 1061 degrees of freedom
+  (16 observations deleted due to missingness)
+Multiple R-squared:  0.9615,    Adjusted R-squared:  0.9589 
+F-statistic: 367.7 on 72 and 1061 DF,  p-value: &lt; 0.00000000000000022</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = log(EnergyIntensity) ~ Ideology + factor(State) + 
+    factor(Year), data = panel)
+
+Residuals:
+      Min        1Q    Median        3Q       Max 
+-0.277867 -0.032899  0.000167  0.032826  0.258819 
+
+Coefficients:
+                  Estimate Std. Error t value             Pr(&gt;|t|)    
+(Intercept)       2.799163   0.015490 180.711 &lt; 0.0000000000000002 ***
+Ideology          0.025907   0.006506   3.982    0.000073047643522 ***
+factor(State)AL  -0.236501   0.017803 -13.285 &lt; 0.0000000000000002 ***
+factor(State)AR  -0.267710   0.017806 -15.035 &lt; 0.0000000000000002 ***
+factor(State)AZ  -0.918658   0.017798 -51.615 &lt; 0.0000000000000002 ***
+factor(State)CA  -1.242132   0.020907 -59.413 &lt; 0.0000000000000002 ***
+factor(State)CO  -0.942712   0.018618 -50.633 &lt; 0.0000000000000002 ***
+factor(State)CT  -1.377606   0.020206 -68.177 &lt; 0.0000000000000002 ***
+factor(State)DE  -1.033672   0.018770 -55.071 &lt; 0.0000000000000002 ***
+factor(State)FL  -0.939173   0.017814 -52.722 &lt; 0.0000000000000002 ***
+factor(State)GA  -0.739364   0.017794 -41.551 &lt; 0.0000000000000002 ***
+factor(State)HI  -1.118978   0.019649 -56.949 &lt; 0.0000000000000002 ***
+factor(State)IA  -0.368275   0.018056 -20.396 &lt; 0.0000000000000002 ***
+factor(State)ID  -0.405038   0.017865 -22.672 &lt; 0.0000000000000002 ***
+factor(State)IL  -0.868807   0.018417 -47.175 &lt; 0.0000000000000002 ***
+factor(State)IN  -0.369889   0.018191 -20.333 &lt; 0.0000000000000002 ***
+factor(State)KS  -0.511355   0.017816 -28.703 &lt; 0.0000000000000002 ***
+factor(State)KY  -0.244743   0.020860 -11.733 &lt; 0.0000000000000002 ***
+factor(State)LA   0.257512   0.017803  14.464 &lt; 0.0000000000000002 ***
+factor(State)MA  -1.333276   0.020449 -65.199 &lt; 0.0000000000000002 ***
+factor(State)MD  -1.052468   0.019676 -53.489 &lt; 0.0000000000000002 ***
+factor(State)ME  -0.541477   0.018747 -28.883 &lt; 0.0000000000000002 ***
+factor(State)MI  -0.707384   0.017805 -39.729 &lt; 0.0000000000000002 ***
+factor(State)MN  -0.752772   0.018288 -41.162 &lt; 0.0000000000000002 ***
+factor(State)MO  -0.680053   0.017856 -38.086 &lt; 0.0000000000000002 ***
+factor(State)MS  -0.152192   0.017794  -8.553 &lt; 0.0000000000000002 ***
+factor(State)MT  -0.270916   0.017797 -15.223 &lt; 0.0000000000000002 ***
+factor(State)NC  -0.806223   0.017894 -45.056 &lt; 0.0000000000000002 ***
+factor(State)ND  -0.065828   0.018007  -3.656             0.000269 ***
+factor(State)NE  -0.517290   0.017795 -29.069 &lt; 0.0000000000000002 ***
+factor(State)NH  -1.068642   0.018019 -59.307 &lt; 0.0000000000000002 ***
+factor(State)NJ  -1.061451   0.019654 -54.007 &lt; 0.0000000000000002 ***
+factor(State)NM  -0.506619   0.019023 -26.631 &lt; 0.0000000000000002 ***
+factor(State)NV  -0.927038   0.018316 -50.614 &lt; 0.0000000000000002 ***
+factor(State)NY  -1.450114   0.019591 -74.021 &lt; 0.0000000000000002 ***
+factor(State)OH  -0.672241   0.017839 -37.685 &lt; 0.0000000000000002 ***
+factor(State)OK  -0.345787   0.017877 -19.343 &lt; 0.0000000000000002 ***
+factor(State)OR  -0.782131   0.018697 -41.831 &lt; 0.0000000000000002 ***
+factor(State)PA  -0.790700   0.017878 -44.227 &lt; 0.0000000000000002 ***
+factor(State)RI  -1.214321   0.018845 -64.437 &lt; 0.0000000000000002 ***
+factor(State)SC  -0.394634   0.017798 -22.172 &lt; 0.0000000000000002 ***
+factor(State)SD  -0.459993   0.017834 -25.793 &lt; 0.0000000000000002 ***
+factor(State)TN  -0.539733   0.017795 -30.331 &lt; 0.0000000000000002 ***
+factor(State)TX  -0.385815   0.017867 -21.594 &lt; 0.0000000000000002 ***
+factor(State)UT  -0.784611   0.017846 -43.966 &lt; 0.0000000000000002 ***
+factor(State)VA  -0.848786   0.017875 -47.485 &lt; 0.0000000000000002 ***
+factor(State)VT  -0.914462   0.019085 -47.916 &lt; 0.0000000000000002 ***
+factor(State)WA  -0.925384   0.018867 -49.048 &lt; 0.0000000000000002 ***
+factor(State)WI  -0.682717   0.017824 -38.303 &lt; 0.0000000000000002 ***
+factor(State)WV  -0.193103   0.018183 -10.620 &lt; 0.0000000000000002 ***
+factor(State)WY   0.018404   0.017800   1.034             0.301403    
+factor(Year)1999 -0.015269   0.011851  -1.288             0.197860    
+factor(Year)2000 -0.029092   0.011786  -2.468             0.013731 *  
+factor(Year)2001 -0.064470   0.011785  -5.470    0.000000055997367 ***
+factor(Year)2002 -0.071339   0.011785  -6.053    0.000000001967200 ***
+factor(Year)2003 -0.092419   0.011789  -7.840    0.000000000000011 ***
+factor(Year)2004 -0.110767   0.011789  -9.395 &lt; 0.0000000000000002 ***
+factor(Year)2005 -0.134674   0.011785 -11.427 &lt; 0.0000000000000002 ***
+factor(Year)2006 -0.168544   0.011785 -14.301 &lt; 0.0000000000000002 ***
+factor(Year)2007 -0.162817   0.011806 -13.791 &lt; 0.0000000000000002 ***
+factor(Year)2008 -0.187696   0.011810 -15.893 &lt; 0.0000000000000002 ***
+factor(Year)2009 -0.206059   0.012019 -17.144 &lt; 0.0000000000000002 ***
+factor(Year)2010 -0.191336   0.012164 -15.730 &lt; 0.0000000000000002 ***
+factor(Year)2011 -0.222473   0.011877 -18.732 &lt; 0.0000000000000002 ***
+factor(Year)2012 -0.267171   0.011882 -22.485 &lt; 0.0000000000000002 ***
+factor(Year)2013 -0.246426   0.011857 -20.784 &lt; 0.0000000000000002 ***
+factor(Year)2014 -0.254193   0.011857 -21.438 &lt; 0.0000000000000002 ***
+factor(Year)2015 -0.289988   0.011924 -24.320 &lt; 0.0000000000000002 ***
+factor(Year)2016 -0.307740   0.011930 -25.795 &lt; 0.0000000000000002 ***
+factor(Year)2017 -0.316649   0.011920 -26.564 &lt; 0.0000000000000002 ***
+factor(Year)2018 -0.306332   0.011851 -25.849 &lt; 0.0000000000000002 ***
+factor(Year)2019 -0.329782   0.011796 -27.957 &lt; 0.0000000000000002 ***
+factor(Year)2020 -0.376044   0.011790 -31.896 &lt; 0.0000000000000002 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.05893 on 1061 degrees of freedom
+  (16 observations deleted due to missingness)
+Multiple R-squared:  0.9811,    Adjusted R-squared:  0.9799 
+F-statistic: 766.5 on 72 and 1061 DF,  p-value: &lt; 0.00000000000000022</code></pre>
+</div>
+</div>
+<p>Multiple linear regressions</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>m3 <span class="ot">&lt;-</span> <span class="fu">lm</span>(</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> panel, <span class="fu">log</span>(CarbonIntensity) <span class="sc">~</span> Ideology <span class="sc">+</span> <span class="fu">log</span>(GDPPerCapita) <span class="sc">+</span> <span class="fu">log</span>(Population) <span class="sc">+</span> Weighted_GHI <span class="sc">+</span> Weighted_Speed120m <span class="sc">+</span> PercentUrban</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>m4 <span class="ot">&lt;-</span> <span class="fu">lm</span>(</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> panel, <span class="fu">log</span>(EnergyIntensity) <span class="sc">~</span> Ideology <span class="sc">+</span> <span class="fu">log</span>(GDPPerCapita) <span class="sc">+</span> <span class="fu">log</span>(Population) <span class="sc">+</span> Weighted_GHI <span class="sc">+</span> Weighted_Speed120m <span class="sc">+</span> PercentUrban</span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>) </span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m3)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = log(CarbonIntensity) ~ Ideology + log(GDPPerCapita) + 
+    log(Population) + Weighted_GHI + Weighted_Speed120m + PercentUrban, 
+    data = panel)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.57617 -0.10500  0.01616  0.11240  0.52644 
+
+Coefficients:
+                     Estimate Std. Error t value             Pr(&gt;|t|)    
+(Intercept)         4.7294761  0.0945665  50.012 &lt; 0.0000000000000002 ***
+Ideology            0.0697975  0.0102878   6.785      0.0000000000191 ***
+log(GDPPerCapita)  -0.2169245  0.0235998  -9.192 &lt; 0.0000000000000002 ***
+log(Population)    -0.0400584  0.0070181  -5.708      0.0000000147614 ***
+Weighted_GHI       -0.0120961  0.0031061  -3.894             0.000105 ***
+Weighted_Speed120m -0.0020219  0.0005170  -3.911      0.0000976275823 ***
+PercentUrban        0.0065250  0.0005806  11.237 &lt; 0.0000000000000002 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.1897 on 1083 degrees of freedom
+  (60 observations deleted due to missingness)
+Multiple R-squared:  0.1698,    Adjusted R-squared:  0.1652 
+F-statistic: 36.91 on 6 and 1083 DF,  p-value: &lt; 0.00000000000000022</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m4)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = log(EnergyIntensity) ~ Ideology + log(GDPPerCapita) + 
+    log(Population) + Weighted_GHI + Weighted_Speed120m + PercentUrban, 
+    data = panel)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.73239 -0.14231 -0.02167  0.10969  0.98419 
+
+Coefficients:
+                     Estimate Std. Error t value             Pr(&gt;|t|)    
+(Intercept)         4.8848468  0.1228817  39.752 &lt; 0.0000000000000002 ***
+Ideology            0.2483889  0.0133682  18.581 &lt; 0.0000000000000002 ***
+log(GDPPerCapita)  -0.5476732  0.0306661 -17.859 &lt; 0.0000000000000002 ***
+log(Population)    -0.0470187  0.0091195  -5.156            0.0000003 ***
+Weighted_GHI        0.0025617  0.0040361   0.635                0.526    
+Weighted_Speed120m -0.0027186  0.0006718  -4.047            0.0000556 ***
+PercentUrban       -0.0065806  0.0007545  -8.722 &lt; 0.0000000000000002 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 0.2465 on 1083 degrees of freedom
+  (60 observations deleted due to missingness)
+Multiple R-squared:  0.6327,    Adjusted R-squared:  0.6307 
+F-statistic: 310.9 on 6 and 1083 DF,  p-value: &lt; 0.00000000000000022</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">vif</span>(m3)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>          Ideology  log(GDPPerCapita)    log(Population)       Weighted_GHI 
+          1.247853           1.206782           1.477801           1.202751 
+Weighted_Speed120m       PercentUrban 
+          1.320640           2.179145 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>cooks_distance_m3 <span class="ot">&lt;-</span> <span class="fu">cooks.distance</span>(m3)</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>influential_m3 <span class="ot">&lt;-</span> <span class="fu">which</span>(cooks_distance_m3 <span class="sc">&gt;</span> (<span class="dv">4</span><span class="sc">/</span>(<span class="fu">length</span>(cooks_distance_m3)<span class="sc">-</span><span class="fu">length</span>(<span class="fu">coefficients</span>(m3)))))</span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>m5 <span class="ot">&lt;-</span> <span class="fu">update</span>(m3, <span class="at">subset =</span> <span class="sc">-</span>influential_m3)</span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>cooks_distance_m4 <span class="ot">&lt;-</span> <span class="fu">cooks.distance</span>(m4)</span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>influential_m4 <span class="ot">&lt;-</span> <span class="fu">which</span>(cooks_distance_m4 <span class="sc">&gt;</span> (<span class="dv">4</span><span class="sc">/</span>(<span class="fu">length</span>(cooks_distance_m4)<span class="sc">-</span><span class="fu">length</span>(<span class="fu">coefficients</span>(m4)))))</span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>m6 <span class="ot">&lt;-</span> <span class="fu">update</span>(m4, <span class="at">subset =</span> <span class="sc">-</span>influential_m4)</span>
+<span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_summs</span>(m3,m4,m5,m6, <span class="at">model.names =</span> <span class="fu">c</span>(<span class="st">"Carbon Intensity"</span>, <span class="st">"Energy Intensity"</span>,</span>
+<span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a>                                        <span class="st">"CI No Influential"</span>, <span class="st">"EI No Influential"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Registered S3 methods overwritten by 'broom':
+  method            from  
+  tidy.glht         jtools
+  tidy.summary.glht jtools</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required namespace: broom.mixed
+Loading required namespace: broom.mixed
+Loading required namespace: broom.mixed
+Loading required namespace: broom.mixed</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="replication_modeling_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>Permutation Inference - Carbon Intensity</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>baseline_CI_FE <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="fu">log</span>(CarbonIntensity) <span class="sc">~</span> Ideology <span class="sc">+</span> <span class="fu">factor</span>(State) <span class="sc">+</span> <span class="fu">factor</span>(Year), <span class="at">data =</span> panel)</span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>baseline_CI_FE_R2 <span class="ot">&lt;-</span> <span class="fu">summary</span>(baseline_CI_FE)<span class="sc">$</span>r.squared</span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>n_permutations <span class="ot">&lt;-</span> <span class="dv">1000</span></span>
+<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a>permuted_stats <span class="ot">&lt;-</span> <span class="fu">numeric</span>(n_permutations)</span>
+<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_permutations) {</span>
+<span id="cb49-8"><a href="#cb49-8" aria-hidden="true" tabindex="-1"></a>  shuffled_data <span class="ot">&lt;-</span> panel</span>
+<span id="cb49-9"><a href="#cb49-9" aria-hidden="true" tabindex="-1"></a>  shuffled_data<span class="sc">$</span>Ideology <span class="ot">&lt;-</span> <span class="fu">sample</span>(shuffled_data<span class="sc">$</span>Ideology)</span>
+<span id="cb49-10"><a href="#cb49-10" aria-hidden="true" tabindex="-1"></a>  model <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="fu">log</span>(CarbonIntensity) <span class="sc">~</span> Ideology <span class="sc">+</span> <span class="fu">factor</span>(State) <span class="sc">+</span> <span class="fu">factor</span>(Year), <span class="at">data=</span>shuffled_data)</span>
+<span id="cb49-11"><a href="#cb49-11" aria-hidden="true" tabindex="-1"></a>  permuted_stats[i] <span class="ot">&lt;-</span> <span class="fu">summary</span>(model)<span class="sc">$</span>r.squared</span>
+<span id="cb49-12"><a href="#cb49-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb49-13"><a href="#cb49-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-14"><a href="#cb49-14" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>() <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">x =</span> permuted_stats, <span class="at">fill =</span> <span class="st">"pink"</span>)) <span class="sc">+</span> <span class="fu">geom_vline</span>(<span class="fu">aes</span>(<span class="at">xintercept =</span> baseline_CI_FE_R2))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="replication_modeling_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>p_value <span class="ot">&lt;-</span> <span class="fu">mean</span>(permuted_stats <span class="sc">&gt;=</span> baseline_CI_FE_R2)</span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>p_value</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.999</code></pre>
+</div>
+</div>
+<p>Permutation Inference - Energy Intensity</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>baseline_EI_FE <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="fu">log</span>(EnergyIntensity) <span class="sc">~</span> Ideology <span class="sc">+</span> <span class="fu">factor</span>(State) <span class="sc">+</span> <span class="fu">factor</span>(Year), <span class="at">data =</span> panel)</span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>baseline_EI_FE_R2 <span class="ot">&lt;-</span> <span class="fu">summary</span>(baseline_EI_FE)<span class="sc">$</span>r.squared</span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>n_permutations <span class="ot">&lt;-</span> <span class="dv">1000</span></span>
+<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a>permuted_stats <span class="ot">&lt;-</span> <span class="fu">numeric</span>(n_permutations)</span>
+<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_permutations) {</span>
+<span id="cb53-8"><a href="#cb53-8" aria-hidden="true" tabindex="-1"></a>  shuffled_data <span class="ot">&lt;-</span> panel</span>
+<span id="cb53-9"><a href="#cb53-9" aria-hidden="true" tabindex="-1"></a>  shuffled_data<span class="sc">$</span>Ideology <span class="ot">&lt;-</span> <span class="fu">sample</span>(shuffled_data<span class="sc">$</span>Ideology)</span>
+<span id="cb53-10"><a href="#cb53-10" aria-hidden="true" tabindex="-1"></a>  model <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="fu">log</span>(EnergyIntensity) <span class="sc">~</span> Ideology <span class="sc">+</span> <span class="fu">factor</span>(State) <span class="sc">+</span> <span class="fu">factor</span>(Year), <span class="at">data=</span>shuffled_data)</span>
+<span id="cb53-11"><a href="#cb53-11" aria-hidden="true" tabindex="-1"></a>  permuted_stats[i] <span class="ot">&lt;-</span> <span class="fu">summary</span>(model)<span class="sc">$</span>r.squared</span>
+<span id="cb53-12"><a href="#cb53-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb53-13"><a href="#cb53-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-14"><a href="#cb53-14" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>() <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">x =</span> permuted_stats, <span class="at">fill =</span> <span class="st">"lightblue"</span>)) <span class="sc">+</span> <span class="fu">geom_vline</span>(<span class="fu">aes</span>(<span class="at">xintercept =</span> baseline_EI_FE_R2))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="replication_modeling_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb55"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a>p_value <span class="ot">&lt;-</span> <span class="fu">mean</span>(permuted_stats <span class="sc">&gt;=</span> baseline_EI_FE_R2)</span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a>p_value</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.01</code></pre>
+</div>
+</div>
+<p>Preparing for Policy Adoption Permutation Inference</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb57"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(adoption) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"State"</span>, <span class="st">"Policy"</span>, <span class="st">"Year"</span>)</span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a>adoption <span class="ot">&lt;-</span> <span class="fu">left_join</span>(adoption, panel <span class="sc">%&gt;%</span> <span class="fu">select</span>(State, Year, Ideology), <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"State"</span>, <span class="st">"Year"</span>))</span>
+<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a>adoption<span class="sc">$</span>YearsSinceAdoption <span class="ot">&lt;-</span> <span class="dv">2024</span> <span class="sc">-</span> adoption<span class="sc">$</span>Year</span>
+<span id="cb57-4"><a href="#cb57-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-5"><a href="#cb57-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-6"><a href="#cb57-6" aria-hidden="true" tabindex="-1"></a>carbon_intensity_policies <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"CommunitySolar"</span>, <span class="st">"UtilitiesGHGCap"</span>, <span class="st">"FuelSourceDisclosure"</span>, <span class="st">"NetMeter"</span>, <span class="st">"ResSolarTaxCredit_2"</span>,<span class="st">"RenewablesOffered_1"</span>, <span class="st">"PowerPlantsReport_2"</span>, <span class="st">"RPS_1"</span>, <span class="st">"PowerPlantsReport_1"</span>, <span class="st">"RPS_2"</span>, <span class="st">"RPS_3"</span>, <span class="st">"ResSolarTaxCredit_1"</span>, <span class="st">"RenewablesOffered_2"</span>)</span>
+<span id="cb57-7"><a href="#cb57-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-8"><a href="#cb57-8" aria-hidden="true" tabindex="-1"></a>energy_intensity_policies <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"CACarStandards"</span>, <span class="st">"ProhibitGasHookupBans"</span>, <span class="st">"PublicBuildingStandards"</span>, <span class="st">"CompleteStreets_1"</span>, <span class="st">"EfficiencyTargets_1"</span>, <span class="st">"LowIncomeEff_1"</span>, <span class="st">"ElectricDecoupling_1"</span>, <span class="st">"GasDecoupling_1"</span>,<span class="st">"ElectricDecoupling_2"</span>, <span class="st">"ElectricDecoupling_3"</span>, <span class="st">"GasDecoupling_3"</span>, <span class="st">"GasDecoupling_2"</span>, <span class="st">"LowIncomeEff_2"</span>, <span class="st">"CompleteStreets_2"</span>, <span class="st">"EfficiencyTargets_2"</span>)</span>
+<span id="cb57-9"><a href="#cb57-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-10"><a href="#cb57-10" aria-hidden="true" tabindex="-1"></a>both_policies <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"ClimateActionPlan"</span>, <span class="st">"PublicBenefitFunds"</span>, <span class="st">"PerformanceStandards"</span>, <span class="st">"PACE"</span>, <span class="st">"StateNEPA_1"</span>, <span class="st">"GHGTargets_2"</span>, <span class="st">"GHGTargets_1"</span>, <span class="st">"StateNEPA_2"</span>, <span class="st">"w_ghg_targets_21_2"</span>)</span>
+<span id="cb57-11"><a href="#cb57-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-12"><a href="#cb57-12" aria-hidden="true" tabindex="-1"></a>adoption_CI <span class="ot">&lt;-</span> adoption <span class="sc">%&gt;%</span> <span class="fu">filter</span>(Policy <span class="sc">%in%</span> carbon_intensity_policies)</span>
+<span id="cb57-13"><a href="#cb57-13" aria-hidden="true" tabindex="-1"></a>adoption_EI <span class="ot">&lt;-</span> adoption <span class="sc">%&gt;%</span> <span class="fu">filter</span>(Policy <span class="sc">%in%</span> energy_intensity_policies)</span>
+<span id="cb57-14"><a href="#cb57-14" aria-hidden="true" tabindex="-1"></a>adoption_other <span class="ot">&lt;-</span> adoption <span class="sc">%&gt;%</span> <span class="fu">filter</span>(Policy <span class="sc">%in%</span> both_policies)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Stringency Regression - All Policies</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a>count <span class="ot">&lt;-</span> adoption <span class="sc">%&gt;%</span></span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(State, Year) <span class="sc">%&gt;%</span></span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(State, Year) <span class="sc">%&gt;%</span></span>
+<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb58-6"><a href="#cb58-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(State) <span class="sc">%&gt;%</span></span>
+<span id="cb58-7"><a href="#cb58-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">RunningCount =</span> <span class="fu">cumsum</span>(Count))</span>
+<span id="cb58-8"><a href="#cb58-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb58-9"><a href="#cb58-9" aria-hidden="true" tabindex="-1"></a>count_highest <span class="ot">&lt;-</span> count <span class="sc">%&gt;%</span></span>
+<span id="cb58-10"><a href="#cb58-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(State, Year) <span class="sc">%&gt;%</span></span>
+<span id="cb58-11"><a href="#cb58-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(RunningCount <span class="sc">==</span> <span class="fu">max</span>(RunningCount)) <span class="sc">%&gt;%</span></span>
+<span id="cb58-12"><a href="#cb58-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb58-13"><a href="#cb58-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb58-14"><a href="#cb58-14" aria-hidden="true" tabindex="-1"></a>count_highest <span class="ot">&lt;-</span> count_highest <span class="sc">%&gt;%</span> <span class="fu">select</span>(State, Year, Ideology, RunningCount)</span>
+<span id="cb58-15"><a href="#cb58-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb58-16"><a href="#cb58-16" aria-hidden="true" tabindex="-1"></a>m8 <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="at">data =</span> count_highest,</span>
+<span id="cb58-17"><a href="#cb58-17" aria-hidden="true" tabindex="-1"></a>         RunningCount <span class="sc">~</span> Ideology)</span>
+<span id="cb58-18"><a href="#cb58-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb58-19"><a href="#cb58-19" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m8)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = RunningCount ~ Ideology, data = count_highest)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-8.9321 -4.3791 -0.3849  4.0560 14.1916 
+
+Coefficients:
+            Estimate Std. Error t value            Pr(&gt;|t|)    
+(Intercept)   9.0840     0.2525   35.98 &lt;0.0000000000000002 ***
+Ideology     -4.0528     0.3888  -10.42 &lt;0.0000000000000002 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 5.115 on 416 degrees of freedom
+  (6 observations deleted due to missingness)
+Multiple R-squared:  0.2071,    Adjusted R-squared:  0.2052 
+F-statistic: 108.7 on 1 and 416 DF,  p-value: &lt; 0.00000000000000022</code></pre>
+</div>
+</div>
+<p>Stringency Regression - Carbon Intensity Policy</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a>count_CI <span class="ot">&lt;-</span> adoption_CI <span class="sc">%&gt;%</span></span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(State, Year) <span class="sc">%&gt;%</span></span>
+<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(State, Year) <span class="sc">%&gt;%</span></span>
+<span id="cb60-4"><a href="#cb60-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb60-5"><a href="#cb60-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb60-6"><a href="#cb60-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(State) <span class="sc">%&gt;%</span></span>
+<span id="cb60-7"><a href="#cb60-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">RunningCount =</span> <span class="fu">cumsum</span>(Count))</span>
+<span id="cb60-8"><a href="#cb60-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb60-9"><a href="#cb60-9" aria-hidden="true" tabindex="-1"></a>count_highest_CI <span class="ot">&lt;-</span> count <span class="sc">%&gt;%</span></span>
+<span id="cb60-10"><a href="#cb60-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(State, Year) <span class="sc">%&gt;%</span></span>
+<span id="cb60-11"><a href="#cb60-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(RunningCount <span class="sc">==</span> <span class="fu">max</span>(RunningCount)) <span class="sc">%&gt;%</span></span>
+<span id="cb60-12"><a href="#cb60-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb60-13"><a href="#cb60-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb60-14"><a href="#cb60-14" aria-hidden="true" tabindex="-1"></a>count_highest_CI <span class="ot">&lt;-</span> count_highest_CI <span class="sc">%&gt;%</span> <span class="fu">select</span>(State, Year, Ideology, RunningCount)</span>
+<span id="cb60-15"><a href="#cb60-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb60-16"><a href="#cb60-16" aria-hidden="true" tabindex="-1"></a>m9 <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="at">data =</span> count_highest_CI,</span>
+<span id="cb60-17"><a href="#cb60-17" aria-hidden="true" tabindex="-1"></a>         RunningCount <span class="sc">~</span> Ideology)</span>
+<span id="cb60-18"><a href="#cb60-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb60-19"><a href="#cb60-19" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m9)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = RunningCount ~ Ideology, data = count_highest_CI)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-8.9321 -4.3791 -0.3849  4.0560 14.1916 
+
+Coefficients:
+            Estimate Std. Error t value            Pr(&gt;|t|)    
+(Intercept)   9.0840     0.2525   35.98 &lt;0.0000000000000002 ***
+Ideology     -4.0528     0.3888  -10.42 &lt;0.0000000000000002 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 5.115 on 416 degrees of freedom
+  (6 observations deleted due to missingness)
+Multiple R-squared:  0.2071,    Adjusted R-squared:  0.2052 
+F-statistic: 108.7 on 1 and 416 DF,  p-value: &lt; 0.00000000000000022</code></pre>
+</div>
+</div>
+<p>Stringency Regression - Energy Efficiency Policy</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb62"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a>count_EE <span class="ot">&lt;-</span> adoption_EI <span class="sc">%&gt;%</span></span>
+<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(State, Year) <span class="sc">%&gt;%</span></span>
+<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(State, Year) <span class="sc">%&gt;%</span></span>
+<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb62-5"><a href="#cb62-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb62-6"><a href="#cb62-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(State) <span class="sc">%&gt;%</span></span>
+<span id="cb62-7"><a href="#cb62-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">RunningCount =</span> <span class="fu">cumsum</span>(Count))</span>
+<span id="cb62-8"><a href="#cb62-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb62-9"><a href="#cb62-9" aria-hidden="true" tabindex="-1"></a>count_highest_EE <span class="ot">&lt;-</span> count <span class="sc">%&gt;%</span></span>
+<span id="cb62-10"><a href="#cb62-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(State, Year) <span class="sc">%&gt;%</span></span>
+<span id="cb62-11"><a href="#cb62-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(RunningCount <span class="sc">==</span> <span class="fu">max</span>(RunningCount)) <span class="sc">%&gt;%</span></span>
+<span id="cb62-12"><a href="#cb62-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb62-13"><a href="#cb62-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb62-14"><a href="#cb62-14" aria-hidden="true" tabindex="-1"></a>count_highest_EE <span class="ot">&lt;-</span> count_highest_EE <span class="sc">%&gt;%</span> <span class="fu">select</span>(State, Year, Ideology, RunningCount)</span>
+<span id="cb62-15"><a href="#cb62-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb62-16"><a href="#cb62-16" aria-hidden="true" tabindex="-1"></a>m10 <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="at">data =</span> count_highest_EE,</span>
+<span id="cb62-17"><a href="#cb62-17" aria-hidden="true" tabindex="-1"></a>         RunningCount <span class="sc">~</span> Ideology)</span>
+<span id="cb62-18"><a href="#cb62-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb62-19"><a href="#cb62-19" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m10)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = RunningCount ~ Ideology, data = count_highest_EE)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-8.9321 -4.3791 -0.3849  4.0560 14.1916 
+
+Coefficients:
+            Estimate Std. Error t value            Pr(&gt;|t|)    
+(Intercept)   9.0840     0.2525   35.98 &lt;0.0000000000000002 ***
+Ideology     -4.0528     0.3888  -10.42 &lt;0.0000000000000002 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 5.115 on 416 degrees of freedom
+  (6 observations deleted due to missingness)
+Multiple R-squared:  0.2071,    Adjusted R-squared:  0.2052 
+F-statistic: 108.7 on 1 and 416 DF,  p-value: &lt; 0.00000000000000022</code></pre>
+</div>
+</div>
+<p>Stringency Index v2 - All Policies</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb64"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a>count <span class="ot">&lt;-</span> adoption <span class="sc">%&gt;%</span></span>
+<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(State, Year) <span class="sc">%&gt;%</span></span>
+<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(State, Year) <span class="sc">%&gt;%</span></span>
+<span id="cb64-4"><a href="#cb64-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb64-5"><a href="#cb64-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb64-6"><a href="#cb64-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(State) <span class="sc">%&gt;%</span></span>
+<span id="cb64-7"><a href="#cb64-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">RunningCount =</span> <span class="fu">cumsum</span>(Count))</span>
+<span id="cb64-8"><a href="#cb64-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-9"><a href="#cb64-9" aria-hidden="true" tabindex="-1"></a>count_adj <span class="ot">&lt;-</span> count</span>
+<span id="cb64-10"><a href="#cb64-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-11"><a href="#cb64-11" aria-hidden="true" tabindex="-1"></a>count_adj <span class="ot">&lt;-</span> count_adj <span class="sc">%&gt;%</span></span>
+<span id="cb64-12"><a href="#cb64-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"RPS"</span>), <span class="fl">0.33</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb64-13"><a href="#cb64-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"ResSolarTaxCredit"</span>), <span class="fl">0.5</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb64-14"><a href="#cb64-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"GasDecoupling"</span>), <span class="fl">0.33</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb64-15"><a href="#cb64-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"LowIncomeEff"</span>), .<span class="dv">5</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb64-16"><a href="#cb64-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"PowerPlantsReport"</span>), .<span class="dv">5</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb64-17"><a href="#cb64-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"ElectricDecoupling"</span>), <span class="fl">0.33</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb64-18"><a href="#cb64-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"EfficiencyTargets"</span>), .<span class="dv">5</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb64-19"><a href="#cb64-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"CompleteStreets"</span>), .<span class="dv">5</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb64-20"><a href="#cb64-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"StateNEPA"</span>), .<span class="dv">5</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb64-21"><a href="#cb64-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"RenewablesOffered"</span>), .<span class="dv">5</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb64-22"><a href="#cb64-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"GHGTargets"</span>), .<span class="dv">5</span>, Count))</span>
+<span id="cb64-23"><a href="#cb64-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-24"><a href="#cb64-24" aria-hidden="true" tabindex="-1"></a>count_adj <span class="ot">&lt;-</span> count_adj <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">RunningCount =</span> <span class="fu">cumsum</span>(Count))</span>
+<span id="cb64-25"><a href="#cb64-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-26"><a href="#cb64-26" aria-hidden="true" tabindex="-1"></a>count_highest <span class="ot">&lt;-</span> count_adj <span class="sc">%&gt;%</span></span>
+<span id="cb64-27"><a href="#cb64-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(State, Year) <span class="sc">%&gt;%</span></span>
+<span id="cb64-28"><a href="#cb64-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(RunningCount <span class="sc">==</span> <span class="fu">max</span>(RunningCount)) <span class="sc">%&gt;%</span></span>
+<span id="cb64-29"><a href="#cb64-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb64-30"><a href="#cb64-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-31"><a href="#cb64-31" aria-hidden="true" tabindex="-1"></a>count_highest <span class="ot">&lt;-</span> count_highest <span class="sc">%&gt;%</span> <span class="fu">select</span>(State, Year, Ideology, RunningCount)</span>
+<span id="cb64-32"><a href="#cb64-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-33"><a href="#cb64-33" aria-hidden="true" tabindex="-1"></a>m11 <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="at">data =</span> count_highest,</span>
+<span id="cb64-34"><a href="#cb64-34" aria-hidden="true" tabindex="-1"></a>         RunningCount <span class="sc">~</span> Ideology)</span>
+<span id="cb64-35"><a href="#cb64-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-36"><a href="#cb64-36" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m11)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = RunningCount ~ Ideology, data = count_highest)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-6.6218 -2.8934 -0.1914  2.6405  8.5695 
+
+Coefficients:
+            Estimate Std. Error t value            Pr(&gt;|t|)    
+(Intercept)   6.1063     0.1664   36.70 &lt;0.0000000000000002 ***
+Ideology     -3.0201     0.2562  -11.79 &lt;0.0000000000000002 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 3.37 on 416 degrees of freedom
+  (6 observations deleted due to missingness)
+Multiple R-squared:  0.2504,    Adjusted R-squared:  0.2486 
+F-statistic:   139 on 1 and 416 DF,  p-value: &lt; 0.00000000000000022</code></pre>
+</div>
+</div>
+<p>Stringency Index v2 - Energy Efficiency Policies</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb66"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a>count <span class="ot">&lt;-</span> adoption_EI <span class="sc">%&gt;%</span></span>
+<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(State, Year) <span class="sc">%&gt;%</span></span>
+<span id="cb66-3"><a href="#cb66-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(State, Year) <span class="sc">%&gt;%</span></span>
+<span id="cb66-4"><a href="#cb66-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb66-5"><a href="#cb66-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb66-6"><a href="#cb66-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(State) <span class="sc">%&gt;%</span></span>
+<span id="cb66-7"><a href="#cb66-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">RunningCount =</span> <span class="fu">cumsum</span>(Count))</span>
+<span id="cb66-8"><a href="#cb66-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-9"><a href="#cb66-9" aria-hidden="true" tabindex="-1"></a>count_adj <span class="ot">&lt;-</span> count</span>
+<span id="cb66-10"><a href="#cb66-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-11"><a href="#cb66-11" aria-hidden="true" tabindex="-1"></a>count_adj <span class="ot">&lt;-</span> count_adj <span class="sc">%&gt;%</span></span>
+<span id="cb66-12"><a href="#cb66-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"RPS"</span>), <span class="fl">0.33</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb66-13"><a href="#cb66-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"ResSolarTaxCredit"</span>), <span class="fl">0.5</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb66-14"><a href="#cb66-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"GasDecoupling"</span>), <span class="fl">0.33</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb66-15"><a href="#cb66-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"LowIncomeEff"</span>), .<span class="dv">5</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb66-16"><a href="#cb66-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"PowerPlantsReport"</span>), .<span class="dv">5</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb66-17"><a href="#cb66-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"ElectricDecoupling"</span>), <span class="fl">0.33</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb66-18"><a href="#cb66-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"EfficiencyTargets"</span>), .<span class="dv">5</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb66-19"><a href="#cb66-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"CompleteStreets"</span>), .<span class="dv">5</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb66-20"><a href="#cb66-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"StateNEPA"</span>), .<span class="dv">5</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb66-21"><a href="#cb66-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"RenewablesOffered"</span>), .<span class="dv">5</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb66-22"><a href="#cb66-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"GHGTargets"</span>), .<span class="dv">5</span>, Count))</span>
+<span id="cb66-23"><a href="#cb66-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-24"><a href="#cb66-24" aria-hidden="true" tabindex="-1"></a>count_adj <span class="ot">&lt;-</span> count_adj <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">RunningCount =</span> <span class="fu">cumsum</span>(Count))</span>
+<span id="cb66-25"><a href="#cb66-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-26"><a href="#cb66-26" aria-hidden="true" tabindex="-1"></a>count_highest <span class="ot">&lt;-</span> count_adj <span class="sc">%&gt;%</span></span>
+<span id="cb66-27"><a href="#cb66-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(State, Year) <span class="sc">%&gt;%</span></span>
+<span id="cb66-28"><a href="#cb66-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(RunningCount <span class="sc">==</span> <span class="fu">max</span>(RunningCount)) <span class="sc">%&gt;%</span></span>
+<span id="cb66-29"><a href="#cb66-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb66-30"><a href="#cb66-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-31"><a href="#cb66-31" aria-hidden="true" tabindex="-1"></a>count_highest <span class="ot">&lt;-</span> count_highest <span class="sc">%&gt;%</span> <span class="fu">select</span>(State, Year, Ideology, RunningCount)</span>
+<span id="cb66-32"><a href="#cb66-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-33"><a href="#cb66-33" aria-hidden="true" tabindex="-1"></a>m13 <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="at">data =</span> count_highest,</span>
+<span id="cb66-34"><a href="#cb66-34" aria-hidden="true" tabindex="-1"></a>         RunningCount <span class="sc">~</span> Ideology)</span>
+<span id="cb66-35"><a href="#cb66-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-36"><a href="#cb66-36" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m13)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = RunningCount ~ Ideology, data = count_highest)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-2.07360 -0.79117  0.05921  0.76877  2.95520 
+
+Coefficients:
+            Estimate Std. Error t value             Pr(&gt;|t|)    
+(Intercept)  2.30172    0.07317  31.455 &lt; 0.0000000000000002 ***
+Ideology    -0.34418    0.10844  -3.174              0.00172 ** 
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 1.076 on 215 degrees of freedom
+  (4 observations deleted due to missingness)
+Multiple R-squared:  0.04476,   Adjusted R-squared:  0.04031 
+F-statistic: 10.07 on 1 and 215 DF,  p-value: 0.001725</code></pre>
+</div>
+</div>
+<p>Stringency Index v2 - Carbon Intensity Policy</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb68"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a>count <span class="ot">&lt;-</span> adoption_CI <span class="sc">%&gt;%</span></span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(State, Year) <span class="sc">%&gt;%</span></span>
+<span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(State, Year) <span class="sc">%&gt;%</span></span>
+<span id="cb68-4"><a href="#cb68-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb68-5"><a href="#cb68-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb68-6"><a href="#cb68-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(State) <span class="sc">%&gt;%</span></span>
+<span id="cb68-7"><a href="#cb68-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">RunningCount =</span> <span class="fu">cumsum</span>(Count))</span>
+<span id="cb68-8"><a href="#cb68-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb68-9"><a href="#cb68-9" aria-hidden="true" tabindex="-1"></a>count_adj <span class="ot">&lt;-</span> count</span>
+<span id="cb68-10"><a href="#cb68-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb68-11"><a href="#cb68-11" aria-hidden="true" tabindex="-1"></a>count_adj <span class="ot">&lt;-</span> count_adj <span class="sc">%&gt;%</span></span>
+<span id="cb68-12"><a href="#cb68-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"RPS"</span>), <span class="fl">0.33</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb68-13"><a href="#cb68-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"ResSolarTaxCredit"</span>), <span class="fl">0.5</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb68-14"><a href="#cb68-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"GasDecoupling"</span>), <span class="fl">0.33</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb68-15"><a href="#cb68-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"LowIncomeEff"</span>), .<span class="dv">5</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb68-16"><a href="#cb68-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"PowerPlantsReport"</span>), .<span class="dv">5</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb68-17"><a href="#cb68-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"ElectricDecoupling"</span>), <span class="fl">0.33</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb68-18"><a href="#cb68-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"EfficiencyTargets"</span>), .<span class="dv">5</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb68-19"><a href="#cb68-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"CompleteStreets"</span>), .<span class="dv">5</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb68-20"><a href="#cb68-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"StateNEPA"</span>), .<span class="dv">5</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb68-21"><a href="#cb68-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"RenewablesOffered"</span>), .<span class="dv">5</span>, Count)) <span class="sc">%&gt;%</span></span>
+<span id="cb68-22"><a href="#cb68-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Count =</span> <span class="fu">if_else</span>(<span class="fu">str_starts</span>(Policy, <span class="st">"GHGTargets"</span>), .<span class="dv">5</span>, Count))</span>
+<span id="cb68-23"><a href="#cb68-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb68-24"><a href="#cb68-24" aria-hidden="true" tabindex="-1"></a>count_adj <span class="ot">&lt;-</span> count_adj <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">RunningCount =</span> <span class="fu">cumsum</span>(Count))</span>
+<span id="cb68-25"><a href="#cb68-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb68-26"><a href="#cb68-26" aria-hidden="true" tabindex="-1"></a>count_highest <span class="ot">&lt;-</span> count_adj <span class="sc">%&gt;%</span></span>
+<span id="cb68-27"><a href="#cb68-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(State, Year) <span class="sc">%&gt;%</span></span>
+<span id="cb68-28"><a href="#cb68-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(RunningCount <span class="sc">==</span> <span class="fu">max</span>(RunningCount)) <span class="sc">%&gt;%</span></span>
+<span id="cb68-29"><a href="#cb68-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb68-30"><a href="#cb68-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb68-31"><a href="#cb68-31" aria-hidden="true" tabindex="-1"></a>count_highest <span class="ot">&lt;-</span> count_highest <span class="sc">%&gt;%</span> <span class="fu">select</span>(State, Year, Ideology, RunningCount)</span>
+<span id="cb68-32"><a href="#cb68-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb68-33"><a href="#cb68-33" aria-hidden="true" tabindex="-1"></a>m12 <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="at">data =</span> count_highest,</span>
+<span id="cb68-34"><a href="#cb68-34" aria-hidden="true" tabindex="-1"></a>         RunningCount <span class="sc">~</span> Ideology)</span>
+<span id="cb68-35"><a href="#cb68-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb68-36"><a href="#cb68-36" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(m12)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = RunningCount ~ Ideology, data = count_highest)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-3.01181 -0.98545  0.05106  0.93168  3.09026 
+
+Coefficients:
+            Estimate Std. Error t value            Pr(&gt;|t|)    
+(Intercept)  2.51101    0.08906  28.196 &lt;0.0000000000000002 ***
+Ideology    -1.40760    0.14183  -9.925 &lt;0.0000000000000002 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 1.262 on 207 degrees of freedom
+  (1 observation deleted due to missingness)
+Multiple R-squared:  0.3224,    Adjusted R-squared:  0.3191 
+F-statistic:  98.5 on 1 and 207 DF,  p-value: &lt; 0.00000000000000022</code></pre>
+</div>
+</div>
+<p>Permutation Inference - Climate Policy</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a>baseline_all <span class="ot">&lt;-</span> <span class="fu">lm</span>(YearsSinceAdoption <span class="sc">~</span> Ideology, <span class="at">data =</span> adoption)</span>
+<span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a>baseline_all_R2 <span class="ot">&lt;-</span> <span class="fu">summary</span>(baseline_all)<span class="sc">$</span>r.squared</span>
+<span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a>n_permutations <span class="ot">&lt;-</span> <span class="dv">1000</span></span>
+<span id="cb70-5"><a href="#cb70-5" aria-hidden="true" tabindex="-1"></a>permuted_stats <span class="ot">&lt;-</span> <span class="fu">numeric</span>(n_permutations)</span>
+<span id="cb70-6"><a href="#cb70-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb70-7"><a href="#cb70-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_permutations) {</span>
+<span id="cb70-8"><a href="#cb70-8" aria-hidden="true" tabindex="-1"></a>  shuffled_data <span class="ot">&lt;-</span> adoption</span>
+<span id="cb70-9"><a href="#cb70-9" aria-hidden="true" tabindex="-1"></a>  shuffled_data<span class="sc">$</span>Ideology <span class="ot">&lt;-</span> <span class="fu">sample</span>(adoption<span class="sc">$</span>Ideology)</span>
+<span id="cb70-10"><a href="#cb70-10" aria-hidden="true" tabindex="-1"></a>  model <span class="ot">&lt;-</span> <span class="fu">lm</span>(YearsSinceAdoption <span class="sc">~</span> Ideology, <span class="at">data =</span> shuffled_data)</span>
+<span id="cb70-11"><a href="#cb70-11" aria-hidden="true" tabindex="-1"></a>  permuted_stats[i] <span class="ot">&lt;-</span> <span class="fu">summary</span>(model)<span class="sc">$</span>r.squared</span>
+<span id="cb70-12"><a href="#cb70-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb70-13"><a href="#cb70-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb70-14"><a href="#cb70-14" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>() <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">x =</span> permuted_stats, <span class="at">fill =</span> <span class="st">"lightgreen"</span>)) <span class="sc">+</span> <span class="fu">geom_vline</span>(<span class="fu">aes</span>(<span class="at">xintercept =</span> baseline_all_R2))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="replication_modeling_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb72"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a>p_value <span class="ot">&lt;-</span> <span class="fu">mean</span>(permuted_stats <span class="sc">&gt;=</span> baseline_all_R2)</span>
+<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a>p_value</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0</code></pre>
+</div>
+</div>
+<p>Permutation Inference - Carbon Intensity Policy</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb74"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a>baseline_CI <span class="ot">&lt;-</span> <span class="fu">lm</span>(YearsSinceAdoption <span class="sc">~</span> Ideology, <span class="at">data =</span> adoption_CI)</span>
+<span id="cb74-2"><a href="#cb74-2" aria-hidden="true" tabindex="-1"></a>baseline_CI_R2 <span class="ot">&lt;-</span> <span class="fu">summary</span>(baseline_CI)<span class="sc">$</span>r.squared</span>
+<span id="cb74-3"><a href="#cb74-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb74-4"><a href="#cb74-4" aria-hidden="true" tabindex="-1"></a>n_permutations <span class="ot">&lt;-</span> <span class="dv">1000</span></span>
+<span id="cb74-5"><a href="#cb74-5" aria-hidden="true" tabindex="-1"></a>permuted_stats <span class="ot">&lt;-</span> <span class="fu">numeric</span>(n_permutations)</span>
+<span id="cb74-6"><a href="#cb74-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb74-7"><a href="#cb74-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_permutations) {</span>
+<span id="cb74-8"><a href="#cb74-8" aria-hidden="true" tabindex="-1"></a>  shuffled_data <span class="ot">&lt;-</span> adoption_CI</span>
+<span id="cb74-9"><a href="#cb74-9" aria-hidden="true" tabindex="-1"></a>  shuffled_data<span class="sc">$</span>Ideology <span class="ot">&lt;-</span> <span class="fu">sample</span>(adoption_CI<span class="sc">$</span>Ideology)</span>
+<span id="cb74-10"><a href="#cb74-10" aria-hidden="true" tabindex="-1"></a>  model <span class="ot">&lt;-</span> <span class="fu">lm</span>(YearsSinceAdoption <span class="sc">~</span> Ideology, <span class="at">data =</span> shuffled_data)</span>
+<span id="cb74-11"><a href="#cb74-11" aria-hidden="true" tabindex="-1"></a>  permuted_stats[i] <span class="ot">&lt;-</span> <span class="fu">summary</span>(model)<span class="sc">$</span>r.squared</span>
+<span id="cb74-12"><a href="#cb74-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb74-13"><a href="#cb74-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb74-14"><a href="#cb74-14" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>() <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">x =</span> permuted_stats, <span class="at">fill =</span> <span class="st">"pink"</span>)) <span class="sc">+</span> <span class="fu">geom_vline</span>(<span class="fu">aes</span>(<span class="at">xintercept =</span> baseline_CI_R2))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="replication_modeling_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb76"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a>p_value <span class="ot">&lt;-</span> <span class="fu">mean</span>(permuted_stats <span class="sc">&gt;=</span> baseline_CI_R2)</span>
+<span id="cb76-2"><a href="#cb76-2" aria-hidden="true" tabindex="-1"></a>p_value</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.704</code></pre>
+</div>
+</div>
+<p>Permutation Inference - Energy Efficiency Policy</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a>baseline_EE <span class="ot">&lt;-</span> <span class="fu">lm</span>(YearsSinceAdoption <span class="sc">~</span> Ideology, <span class="at">data =</span> adoption_EI)</span>
+<span id="cb78-2"><a href="#cb78-2" aria-hidden="true" tabindex="-1"></a>baseline_EE_R2 <span class="ot">&lt;-</span> <span class="fu">summary</span>(baseline_EE)<span class="sc">$</span>r.squared</span>
+<span id="cb78-3"><a href="#cb78-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb78-4"><a href="#cb78-4" aria-hidden="true" tabindex="-1"></a>n_permutations <span class="ot">&lt;-</span> <span class="dv">1000</span></span>
+<span id="cb78-5"><a href="#cb78-5" aria-hidden="true" tabindex="-1"></a>permuted_stats <span class="ot">&lt;-</span> <span class="fu">numeric</span>(n_permutations)</span>
+<span id="cb78-6"><a href="#cb78-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb78-7"><a href="#cb78-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>n_permutations) {</span>
+<span id="cb78-8"><a href="#cb78-8" aria-hidden="true" tabindex="-1"></a>  shuffled_data <span class="ot">&lt;-</span> adoption_EI</span>
+<span id="cb78-9"><a href="#cb78-9" aria-hidden="true" tabindex="-1"></a>  shuffled_data<span class="sc">$</span>Ideology <span class="ot">&lt;-</span> <span class="fu">sample</span>(adoption_EI<span class="sc">$</span>Ideology)</span>
+<span id="cb78-10"><a href="#cb78-10" aria-hidden="true" tabindex="-1"></a>  model <span class="ot">&lt;-</span> <span class="fu">lm</span>(YearsSinceAdoption <span class="sc">~</span> Ideology, <span class="at">data =</span> shuffled_data)</span>
+<span id="cb78-11"><a href="#cb78-11" aria-hidden="true" tabindex="-1"></a>  permuted_stats[i] <span class="ot">&lt;-</span> <span class="fu">summary</span>(model)<span class="sc">$</span>r.squared</span>
+<span id="cb78-12"><a href="#cb78-12" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb78-13"><a href="#cb78-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb78-14"><a href="#cb78-14" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>() <span class="sc">+</span> <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">x =</span> permuted_stats, <span class="at">fill =</span> <span class="st">"lightblue"</span>)) <span class="sc">+</span> <span class="fu">geom_vline</span>(<span class="fu">aes</span>(<span class="at">xintercept =</span> baseline_EE_R2))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="replication_modeling_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a>p_value <span class="ot">&lt;-</span> <span class="fu">mean</span>(permuted_stats <span class="sc">&gt;=</span> baseline_EE_R2)</span>
+<span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a>p_value</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0</code></pre>
+</div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
