@@ -235,20 +235,20 @@ ideology <- ideology[ideology$Year >= 1998 & ideology$Year <= 2020,]
 p <- merge(ideology, p, by=c("State","Year"))
 p <- merge(p, states, by="State")
 
-p$PropFarmWages <- (p$FarmWages/p$TotalWages)+1
-p$PropMiningWages <- (p$MiningWages/p$TotalWages)+1
-p$PropRenewableConsumption <- (p$RenewableConsumption/p$EnergyConsumption)+1
-p$PropNatGasConsumption <- (p$NatGasConsumption/p$EnergyConsumption)+1
+p$PropFarmWages <- (p$FarmWages/p$TotalWages)
+p$PropMiningWages <- (p$MiningWages/p$TotalWages)
+p$PropRenewableConsumption <- (p$RenewableConsumption/p$EnergyConsumption)
+p$PropNatGasConsumption <- (p$NatGasConsumption/p$EnergyConsumption)
 p$GDPPerCapita <- (p$RealGDP/p$Population)
-p$CoalValue <- ((p$CoalPrice * p$CoalProduction)/p$RealGDP)+1
-p$NatGasValue <- ((p$NatGasPrice * p$NatGasProduction)/p$RealGDP)+1
-p$OilValue <- ((p$OilPrice * p$OilProd)/p$RealGDP)+1
-p$AdjMeanChamber <- p$MeanChamberIdeology + 5
-p$AdjPercentUnion <- p$PercentUnion + 1
-p$PropRenewableProduction <- (p$RenewableProduction/p$TotalProduction)+1
-p$PropCoalProduction <- (p$CoalProduction/p$TotalProduction)+1
-p$PropNatGasProduction <- (p$NatGasProduction/p$TotalProduction)+1
-p$PropOilProduction <- (p$OilProduction/p$TotalProduction)+1
+p$CoalValue <- ((p$CoalPrice * p$CoalProduction)/p$RealGDP)
+p$NatGasValue <- ((p$NatGasPrice * p$NatGasProduction)/p$RealGDP)
+p$OilValue <- ((p$OilPrice * p$OilProd)/p$RealGDP)
+p$AdjMeanChamber <- p$MeanChamberIdeology
+p$AdjPercentUnion <- p$PercentUnion
+p$PropRenewableProduction <- (p$RenewableProduction/p$TotalProduction)
+p$PropCoalProduction <- (p$CoalProduction/p$TotalProduction)
+p$PropNatGasProduction <- (p$NatGasProduction/p$TotalProduction)
+p$PropOilProduction <- (p$OilProduction/p$TotalProduction)
 
 p <- subset(p, select = c(-House,-Senate,-EnergyConsumption,-TotalWages,-TotalProduction, -RenewableConsumption,
                           -NatGasConsumption,-FarmWages,-MiningWages,-PercentUnion,-CoalProduction,-RenewableProduction,

@@ -13,63 +13,54 @@ library(plm)
 library(tidyverse)
 library(nnet)
 library(cluster)
+library(ConvergenceClubs)
 set.seed(07151129)
 options(scipen = 999)
 
-panel <- read.csv("p_JAN28.csv")[,2:33] # exlcuding ID column
+panel <- read.csv("p_JAN29.csv")[,2:29] # exlcuding ID column
 policies <- read.csv("policies.csv")[,3:29] %>% filter(year >= 1998) # Bergquist & Warshaw 2023
 ```
 
-**Kaya Identity**
+**Exploratory Data Analysis**
 
 ```{r}
-k1 <- lm(Emissions ~ Population + GDPpc + CI + EI, data = panel)
-k2 <- lm(log(Emissions) ~ log(Population) + log(GDPpc) + log(CI) + log(EI), data = panel)
-plot(k1)
-plot(k2)
-export_summs(k1, k2, robust = "HC3", model.names = c("Linear", "Log-linear"))
-plot_coefs(k1,k2)
+ggplot(panel, aes(x=AdjMeanChamber, y=CI, color=Year)) + geom_point()
+ggplot(panel, aes(x=AdjMeanChamber, y=EI, color=Year)) + geom_point()
+ggplot(panel, aes(x=PropRenewableConsumption, y=CI, color=Year)) + geom_point()
+ggplot(panel, aes(x=IncomePerCapita, y=EI, color=Year)) + geom_point()
+
+summary(lm(EI~AdjMeanChamber, data=panel))
 ```
 
-**First Models with Fixed Effects**
+**Fixed Effects Models**
 
 ```{r}
-colnames(panel)
+m1 <- glm(log(CI) ~ AdjMeanChamber + factor(State) + factor(Year), data = panel)
+m2 <- glm(log(EI) ~ AdjMeanChamber + factor(State) + factor(Year), data = panel)
 
-m1 <- lm(log(CI) ~ log(Chamber) + factor(State) + factor(Year), data = panel)
-m2 <- lm(log(EI) ~ log(Chamber) + factor(State) + factor(Year), data = panel)
-m3 <- lm(log(CI_Lag1) ~ log(Chamber) + factor(State) + factor(Year), data = panel)
-m4 <- lm(log(EI_Lag1) ~ log(Chamber) + factor(State) + factor(Year), data = panel)
-
-export_summs(m1, m3, m2, m4, model.names = c("Carbon Intensity", "Lagged Carbon Intensity",
-                                             "Energy Intensity", "Lagged Energy Intensity"))
+summary(m1)
+summary(m2)
+  
 plot(m1)
-plot(m2)
-plot(m3)
-plot(m4)
 ```
 
 **First Models with Features**
 
 ```{r}
-m5 <- lm(log(CI) ~ log(Chamber) + log(Weighted_GHI) + log(Weighted_Speed120m) + log(ManuUnion) + log(GDPpc) + log(OilProd) + log(GasProd) + log(CoalProd) + log(Population) + log(FarmWages)+ log(MiningWages), panel)
-m6 <- lm(log(EI) ~ log(Chamber) + log(Weighted_GHI) + log(Weighted_Speed120m) + log(ManuUnion) + log(GDPpc) + log(OilProd) + log(GasProd) + log(CoalProd) + log(Population) + log(FarmWages) + log(MiningWages), panel)
-m7 <- lm(log(CI_Lag1) ~ log(Chamber) + log(Weighted_GHI) + log(Weighted_Speed120m) + log(ManuUnion) + log(GDPpc) + log(OilProd) + log(GasProd) + log(CoalProd) + log(Population) + log(FarmWages)+ log(MiningWages), panel)
-m8 <- lm(log(EI_Lag1) ~ log(Chamber) + log(Weighted_GHI) + log(Weighted_Speed120m) + log(ManuUnion) + log(GDPpc) + log(OilProd) + log(GasProd) + log(CoalProd) + log(Population) + log(FarmWages)+ log(MiningWages), panel)
+colnames(panel)
+m3 <- glm(log(CI) ~ AdjMeanChamber + AdjPercentUnion + Population + IncomePerCapita + PropFarmWages + PropOilProduction + PropCoalProduction + PropNatGasProduction + Weighted_GHI + Weighted_Speed120m, data = panel)
+m4 <- glm(log(EI) ~ AdjMeanChamber + AdjPercentUnion + Population + IncomePerCapita + PropFarmWages + PropOilProduction + PropCoalProduction + PropNatGasProduction + Weighted_GHI + Weighted_Speed120m, data = panel)
+
+hist(log(panel$CI))
+hist(log(panel$EI))
+hist(log(panel$AdjMeanChamber))
 
 
-vif(m5)
-vif(m6)
-vif(m7)
-vif(m8)
+summary(m3)
+summary(m4)
 
-plot_coefs(m5,m6,m7,m8, model.names = c("Carbon Intensity", "Energy Intensity",
-                                             "CI_Lag1", "EI_Lag1"))
-export_summs(m5,m6,m7,m8, model.names = c("Carbon Intensity", "Energy Intensity",
-                                             "CI_Lag1", "EI_Lag1"),robust="HC3")
-
-ggplot(panel%>%filter(Year==2020), aes(x=State, y=Weighted_GHI, color=Chamber)) + geom_point()
-ggplot(panel%>%filter(Year==2020), aes(x=State, y=Weighted_Speed120m, color=Chamber)) + geom_point()
+confint(m3)
+confint(m4)
 ```
 
 **Visualizations**
@@ -91,7 +82,7 @@ panel_right <- panel[panel$Chamber > 10.067,]
 **Permutation Inference - Overall Emissions**
 
 ```{r}
-baseline_E_FE <- lm(Emissions ~ Chamber + factor(State) + factor(Year), data = panel)
+baseline_E_FE <- lm(Emissions ~ AdjMeanChamber + factor(State) + factor(Year), data = panel)
 baseline_E_FE_R2 <- summary(baseline_E_FE)$r.squared
 
 n_permutations <- 1000
@@ -99,8 +90,8 @@ permuted_stats <- numeric(n_permutations)
 
 for(i in 1:n_permutations) {
   shuffled_data <- panel
-  shuffled_data$Chamber <- sample(shuffled_data$Chamber)
-  model <- lm(Emissions ~ Chamber + factor(State) + factor(Year), data=shuffled_data)
+  shuffled_data$AdjMeanChamber <- sample(shuffled_data$AdjMeanChamber)
+  model <- lm(Emissions ~ AdjMeanChamber + factor(State) + factor(Year), data=shuffled_data)
   permuted_stats[i] <- summary(model)$r.squared
 }
 
@@ -111,7 +102,7 @@ p_value
 **Permutation Inference - Carbon Intensity**
 
 ```{r}
-baseline_CI_FE <- lm(CI ~ Chamber + factor(State) + factor(Year), data = panel)
+baseline_CI_FE <- lm(CI ~ AdjMeanChamber + factor(State) + factor(Year), data = panel)
 baseline_CI_FE_R2 <- summary(baseline_CI_FE)$r.squared
 
 n_permutations <- 1000
@@ -119,8 +110,8 @@ permuted_stats <- numeric(n_permutations)
 
 for(i in 1:n_permutations) {
   shuffled_data <- panel
-  shuffled_data$Chamber <- sample(shuffled_data$Chamber)
-  model <- lm(CI ~ Chamber + factor(State) + factor(Year), data=shuffled_data)
+  shuffled_data$AdjMeanChamber <- sample(shuffled_data$AdjMeanChamber)
+  model <- lm(CI ~ AdjMeanChamber + factor(State) + factor(Year), data=shuffled_data)
   permuted_stats[i] <- summary(model)$r.squared
 }
 
@@ -131,7 +122,7 @@ p_value
 **Permutation Inference - Energy Intensity**
 
 ```{r}
-baseline_EI_FE <- lm(EI ~ Chamber + factor(State) + factor(Year), data = panel)
+baseline_EI_FE <- lm(EI ~ AdjMeanChamber + factor(State) + factor(Year), data = panel)
 baseline_EI_FE_R2 <- summary(baseline_EI_FE)$r.squared
 
 n_permutations <- 1000
@@ -139,8 +130,8 @@ permuted_stats <- numeric(n_permutations)
 
 for(i in 1:n_permutations) {
   shuffled_data <- panel
-  shuffled_data$Chamber <- sample(shuffled_data$Chamber)
-  model <- lm(EI ~ Chamber + factor(State) + factor(Year), data=shuffled_data)
+  shuffled_data$AdjMeanChamber <- sample(shuffled_data$AdjMeanChamber)
+  model <- lm(EI ~ AdjMeanChamber + factor(State) + factor(Year), data=shuffled_data)
   permuted_stats[i] <- summary(model)$r.squared
 }
 
@@ -156,7 +147,7 @@ policies <- policies %>% filter(State != "DC")
 for (i in 3:24) {
   policies[,i] <- as.factor(policies[,i])
 }
-policies <- full_join(policies, panel %>% select(State, Year, Chamber, CI, EI))
+policies <- full_join(policies, panel %>% select(State, Year, AdjMeanChamber, CI, EI))
 
 ggplot(policies, aes(x=Year, y=z_gasoline_tax, color=State)) +
   geom_line() + theme_bw() + labs(title = "Gasoline Taxes Over Time (1998-2020)") + theme(
@@ -224,7 +215,7 @@ multinom_p_5 <- c(rep(NA,24))
 
 for (i in 3:24) {
   if (is.factor(policies[,i])) {
-    m <- multinom(policies[,i] ~ Chamber + factor(State) + factor(Year), data = policies)
+    m <- multinom(policies[,i] ~ AdjMeanChamber + factor(State) + factor(Year), data = policies)
     sm <- summary(m)
     
     for (k in 1:length(levels(policies[,i]))) {
@@ -269,7 +260,7 @@ multinom_coef_2, multinom_std_2, multinom_p_2,      multinom_coef_3, multinom_st
 multinom_outcomes
 multinom_sig <- multinom_outcomes %>% filter(multinom_p < 0.05 | multinom_p_2 < 0.05 | multinom_p_3 < 0.05)
 
-policies_sig <- policies %>% select(Year, State, Chamber, CI, EI, environment_ca_car_emissions_standards_21
+policies_sig <- policies %>% select(Year, State, AdjMeanChamber, CI, EI, environment_ca_car_emissions_standards_21
 , environment_ghg_cap_21, 
 environment_publicbenefit_funds_21, 	
 netmeter_yearadopted_21, w_ghg_targets_21,w4_environment_state_rps_21,	
@@ -291,47 +282,47 @@ policy_descriptions <- c("Year",
 
 for (i in 1:ncol(policies)) {
   if (is.factor(policies[,i])) {
-    policies_temp <- policies %>% select(State, Year, Chamber) %>% mutate(Variable = policies[,i])
+    policies_temp <- policies %>% select(State, Year, AdjMeanChamber) %>% mutate(Variable = policies[,i])
     policies_temp <- na.omit(policies_temp)
-    suppressWarnings(print(ggplot(policies_temp, aes(x=Chamber, y=Variable, color=Year)) +
+    suppressWarnings(print(ggplot(policies_temp, aes(x=AdjMeanChamber, y=Variable, color=Year)) +
       geom_jitter() + theme_bw() + labs(title = colnames(policies)[i]) + theme(
         title = element_text(face = "bold", color = "black"),
         axis.title = element_text(face = "bold", color = "black"),
-        panel.grid.major.x = element_blank()) + geom_vline(xintercept = median(policies_temp$Chamber, na.rm = TRUE), linetype = "dashed", color = "blue") + xlim(c(min(policies_temp$Chamber, na.rm = TRUE), max(policies_temp$Chamber, na.rm = TRUE))))
+        panel.grid.major.x = element_blank()) + geom_vline(xintercept = median(policies_temp$AdjMeanChamber, na.rm = TRUE), linetype = "dashed", color = "blue") + xlim(c(min(policies_temp$AdjMeanChamber, na.rm = TRUE), max(policies_temp$AdjMeanChamber, na.rm = TRUE))))
   )}
 }
 
 for (i in 1:ncol(policies)) {
   if (is.factor(policies[,i])) {
-    policies_temp <- policies %>% select(State, Year, Chamber) %>% mutate(Variable = policies[,i]) %>% filter(Year >= 2005 & Year <= 2008)
+    policies_temp <- policies %>% select(State, Year, AdjMeanChamber) %>% mutate(Variable = policies[,i]) %>% filter(Year >= 2005 & Year <= 2008)
     policies_temp <- na.omit(policies_temp)
-    suppressWarnings(print(ggplot(policies_temp, aes(x=Chamber, y=Variable, color=Year)) +
+    suppressWarnings(print(ggplot(policies_temp, aes(x=AdjMeanChamber, y=Variable, color=Year)) +
       geom_jitter() + scale_color_gradient(low = "pink", high = "red")  + theme_bw() + labs(title = colnames(policies)[i]) + theme(
         title = element_text(face = "bold", color = "black"),
         axis.title = element_text(face = "bold", color = "black"),
-        panel.grid.major.x = element_blank()) + geom_vline(xintercept = median(policies_temp$Chamber, na.rm = TRUE), linetype = "dashed", color = "black") + xlim(c(min(policies_temp$Chamber, na.rm = TRUE), max(policies_temp$Chamber, na.rm = TRUE))))
+        panel.grid.major.x = element_blank()) + geom_vline(xintercept = median(policies_temp$AdjMeanChamber, na.rm = TRUE), linetype = "dashed", color = "black") + xlim(c(min(policies_temp$AdjMeanChamber, na.rm = TRUE), max(policies_temp$AdjMeanChamber, na.rm = TRUE))))
   )}
 }
 
 for (i in 1:ncol(policies_sig)) {
   if (is.factor(policies_sig[,i])) {
-    policies_temp <- policies_sig %>% select(State, Year, Chamber) %>% mutate(Variable = policies_sig[,i])
+    policies_temp <- policies_sig %>% select(State, Year, AdjMeanChamber) %>% mutate(Variable = policies_sig[,i])
     policies_temp <- na.omit(policies_temp)
-    suppressWarnings(print(ggplot(policies_temp, aes(x=Chamber, y=Variable, color=Year)) +
+    suppressWarnings(print(ggplot(policies_temp, aes(x=AdjMeanChamber, y=Variable, color=Year)) +
       geom_jitter() + scale_color_gradient(low = "gold", high = "darkgreen") + theme_bw() + labs(title = colnames(policies_sig)[i], subtitle = policy_descriptions[i]) + theme(
         title = element_text(face = "bold", color = "black"),
         axis.title = element_text(face = "bold", color = "black"),
-        panel.grid.major.x = element_blank()) + geom_vline(xintercept = median(policies_temp$Chamber, na.rm = TRUE), linetype = "dashed", color = "black") + xlim(c(min(policies_temp$Chamber, na.rm = TRUE), max(policies_temp$Chamber, na.rm = TRUE))))
+        panel.grid.major.x = element_blank()) + geom_vline(xintercept = median(policies_temp$AdjMeanChamber, na.rm = TRUE), linetype = "dashed", color = "black") + xlim(c(min(policies_temp$AdjMeanChamber, na.rm = TRUE), max(policies_temp$AdjMeanChamber, na.rm = TRUE))))
   )}
 }
 
 for (i in 1:ncol(policies_sig)) {
   if (is.factor(policies_sig[,i])) {
-    policies_temp <- policies_sig %>% select(State, Year, Chamber, CI, EI) %>% mutate(Variable = policies_sig[,i])
+    policies_temp <- policies_sig %>% select(State, Year, AdjMeanChamber, CI, EI) %>% mutate(Variable = policies_sig[,i])
     policies_temp <- na.omit(policies_temp)
-    print(ggplot(policies_temp, aes(x=Variable, y=CI, color=Chamber)) +
+    print(ggplot(policies_temp, aes(x=Variable, y=CI, color=AdjMeanChamber)) +
       geom_jitter() + scale_color_gradient(low = "gold", high = "darkgreen") + theme_bw() + labs(title = colnames(policies_sig)[i], subtitle = policy_descriptions[i]))
-    print(ggplot(policies_temp, aes(x=Variable, y=EI, color=Chamber)) +
+    print(ggplot(policies_temp, aes(x=Variable, y=EI, color=AdjMeanChamber)) +
       geom_jitter() + scale_color_gradient(low = "purple", high = "orange") + theme_bw() + labs(title = colnames(policies_sig)[i], subtitle = policy_descriptions[i]))
   }
 }
@@ -442,54 +433,26 @@ sm_test <- summary(m_test)
 sm_test$coefficients[2,]
 ```
 
-**Models with Wind and Solar Data**
-
 ```{r}
-colnames(panel)
-summary(
-  lm(data = panel, formula = log(CI) ~ log(Weighted_GHI) + log(Weighted_Speed120m) + log(Chamber) + log(Population) + log(GDPCurrent) + factor(Year)))
+library(fastDummies)
 
-ggplot(data=panel%>%filter(Year == 2019), aes(x=Solar_Irradiance, y=CI)) + geom_point(aes(fill=Chamber<10.7)) + geom_smooth(data = subset(panel, Chamber < 10.7 & Year == 2019), 
-              aes(x = Solar_Irradiance, y = CI, color = "Chamber < 10.7"), 
-              method = "lm", se = FALSE) +
-  geom_smooth(data = subset(panel, Chamber >= 10.7 & Year == 2019), 
-              aes(x = Solar_Irradiance, y = CI, color = "Chamber >= 10.7"), 
-              method = "lm", se = FALSE)
-
-ggplot(panel%>%filter(Year==2018), aes(x=Renewables,y=Weighted_Speed120m)) + geom_point()
-```
-
-**Hierarchical Clustering**
-
-```{r}
-library("fastDummies")
-colnames(policies)[1:2] <- c("State", "Year")
-names(policies)[3:24] <- paste0("FACTOR_", names(policies)[3:24])
-policies_join <- left_join(policies, panel%>%select(State,Year,Chamber,ManuUnion,OilProd,GasProd, CoalProd), by = c("State", "Year"))
-policies_join[3:24] <- lapply(policies_join[3:24], as.factor)
-
-sum(is.na(policies_join))
-
-str(policies_join)
-policies_daisy <- daisy(x=policies_join%>%select(-State,-Year))
-h <- hclust(policies_daisy)
-plot(h)
-```
-
-```{r}
 policies_omit <- policies
 policies_omit[is.na(policies_omit)] <- 0
 policies_omit <- policies_omit %>% filter(State != 0) %>% filter(State != "DC")
 policies_omit[3:24] <- lapply(policies_omit[3:24], as.factor)
+names(policies_omit)[3:24] <- paste0("FACTOR_", names(policies_omit)[3:24])
+
 
 cols_to_encode <- sapply(policies_omit, function(x) is.factor(x) && length(unique(x)) > 2)
 factor_cols <- names(policies_omit)[cols_to_encode]
 
 policies_onehot <- dummy_cols(policies_omit, select_columns = factor_cols, remove_first_dummy = TRUE)
 
+policies_onehot <- policies_onehot %>% select(-factor_cols)
+
 str(policies_onehot)
-policies_onehot[3:24] <- lapply(policies_onehot[3:24], as.numeric)
-policies_onehot[3:24] <- policies_onehot[3:24]-1
+policies_onehot[3:24] <- lapply(policies_onehot[3:13], as.numeric)
+policies_onehot[3:24] <- policies_onehot[3:13]-1
 
 long_policies <- policies_onehot %>%
   pivot_longer(
@@ -497,7 +460,7 @@ long_policies <- policies_onehot %>%
     names_to = "policy",
     values_to = "adopted"
   ) %>%
-  filter(adopted ==1) 
+  filter(adopted == 1) 
 
 first_year_adopted <- long_policies %>%
   group_by(State, policy) %>%
@@ -506,31 +469,138 @@ first_year_adopted <- long_policies %>%
 
 unique(policies_omit$State)
 
-library(clustMixType)
-
 str(first_year_adopted)
 
 first_year_adopted$State <- as.factor(first_year_adopted$State)
 first_year_adopted$policy <- as.factor(first_year_adopted$policy)
 colnames(first_year_adopted) <- c("State", "Policy", "Year")
 
-joined_first_year <- left_join(first_year_adopted, panel %>% select(State, Year, Chamber), by=c("State","Year"))
+joined_first_year <- left_join(first_year_adopted, panel %>% select(State, Year, AdjMeanChamber), by=c("State","Year"))
 
 str(joined_first_year)
 joined_first_year$State <- as.factor(joined_first_year$State)
-joined_first_year$Year <- as.factor(joined_first_year$Year)
 
-first_year_daisy <- daisy(x=joined_first_year)
+for (i in 1:length(unique(joined_first_year$Policy))) {
+  print(
+    ggplot(data=joined_first_year%>%filter(Policy==unique(joined_first_year$Policy)[i]),
+           aes(x=Year, y=AdjMeanChamber,color=State)) + geom_point() + theme_bw() + labs(title = as.character(unique(joined_first_year$Policy)[i])) + xlim(c(1998,2020)) + ylim(c(-2,2))
+  )
+}
 
-average_H <- hclust(first_year_daisy, "average")
+write.csv(joined_first_year, "first_year_adopted.csv")
+```
 
-plot(average_H, labels=FALSE, main="Average")
+```{r}
+joined_first_year$Year <- 2024 - joined_first_year$Year
+colnames(joined_first_year)[3] <- "YearsSinceAdoption"
 
-clusters <- cutree(average_H, k = 5)
+years_since_EI <- joined_first_year %>% filter(Policy %in% energy_intensity_policies)
 
-joined_first_year$cluster <- clusters
+joined_first_year$Policy <- gsub("FACTOR_", "", joined_first_year$Policy)
 
-table(joined_first_year$cluster)
+carbon_intensity_policies <- c("community_solar", "environment_ghg_cap_21", "fgd_21", "netmeter_yearadopted_21", "w_environment_solar_taxcredit_21_2","w_mgpo_21_1", "w_gg_rr_21", "w_mgpo_21", "w4_environment_state_rps_21_1", "x_rps_targets_bindingonly", "w_gg_rr_21_1", "w4_environment_state_rps_21_2", "w4_environment_state_rps_21_3", "w_environment_solar_taxcredit_21_1", "w_mgpo_21_2", "w_gg_rr_21_2")
 
-view(joined_first_year %>% filter(cluster == 1))
+energy_intensity_policies <- c("environment_ca_car_emissions_standards_21", "environment_preemption_naturalgasbans", "public_building_standards", "w_complete_streets_21", "w_ee_21", "w_low_income_ee_21", "w4_electric_decoupling_21", "w4_gas_decoupling_21", "x_eers","w4_electric_decoupling_21_3", "w4_electric_decoupling_21_1", "w4_gas_decoupling_21_3", "w4_gas_decoupling_21_2", "w_low_income_ee_21_2", "w4_electric_decoupling_21_2", "w4_gas_decoupling_21_1", "w_low_income_ee_21_1", "w_complete_streets_21_2", "w_complete_streets_21_1", "w_ee_21_1", "w_ee_21_2")
+
+both_policies <- c("climate_action_plan_21", "environment_publicbenefit_funds_21", "ghg_standards_21", "pace_21", "w_environment_state_nepas_21_1", "w_ghg_targets_21", "z_gasoline_tax", "w_environment_state_nepas_21_2", "w_ghg_targets_21_1", "w_ghg_targets_21_2")
+
+joined_CI <- joined_first_year %>% filter(Policy %in% carbon_intensity_policies)
+joined_EI <- joined_first_year %>% filter(Policy %in% energy_intensity_policies)
+joined_both <- joined_first_year %>% filter(Policy %in% both_policies)
+
+summary(
+  lm(YearsSinceAdoption ~ AdjMeanChamber, data = joined_first_year)
+)
+
+summary(
+  lm(YearsSinceAdoption ~ AdjMeanChamber, data = joined_CI)
+)
+
+summary(
+  lm(YearsSinceAdoption ~ AdjMeanChamber, data = joined_EI)
+)
+
+summary(
+  lm(YearsSinceAdoption ~ AdjMeanChamber, data = joined_both)
+)
+```
+
+**Permutation Inference - Policy Adoption - All Policies**
+
+```{r}
+baseline_ALL <- lm(YearsSinceAdoption ~ AdjMeanChamber, data = joined_first_year)
+baseline_ALL_R2 <- summary(baseline_ALL)$r.squared
+
+n_permutations <- 1000
+permuted_stats <- numeric(n_permutations)
+
+for(i in 1:n_permutations) {
+  shuffled_data <- joined_first_year
+  shuffled_data$AdjMeanChamber <- sample(joined_first_year$AdjMeanChamber)
+  model <- lm(YearsSinceAdoption ~ AdjMeanChamber, data = shuffled_data)
+  permuted_stats[i] <- summary(model)$r.squared
+}
+
+p_value <- mean(permuted_stats >= baseline_ALL_R2)
+p_value
+```
+
+**Permutation Inference - Policy Adoption - Energy Efficiency Policies**
+
+```{r}
+baseline_EE <- lm(YearsSinceAdoption ~ AdjMeanChamber, data = joined_EI)
+baseline_EE_R2 <- summary(baseline_EE)$r.squared
+
+n_permutations <- 1000
+permuted_stats <- numeric(n_permutations)
+
+for(i in 1:n_permutations) {
+  shuffled_data <- joined_EI
+  shuffled_data$AdjMeanChamber <- sample(joined_EI$AdjMeanChamber)
+  model <- lm(YearsSinceAdoption ~ AdjMeanChamber, data = shuffled_data)
+  permuted_stats[i] <- summary(model)$r.squared
+}
+
+p_value <- mean(permuted_stats >= baseline_ALL_R2)
+p_value
+```
+
+**Permutation Inference - Policy Adoption - Carbon Intensity Policies**
+
+```{r}
+baseline_CI <- lm(YearsSinceAdoption ~ AdjMeanChamber, data = joined_CI)
+baseline_CI_R2 <- summary(baseline_CI)$r.squared
+
+n_permutations <- 1000
+permuted_stats <- numeric(n_permutations)
+
+for(i in 1:n_permutations) {
+  shuffled_data <- joined_CI
+  shuffled_data$AdjMeanChamber <- sample(joined_CI$AdjMeanChamber)
+  model <- lm(YearsSinceAdoption ~ AdjMeanChamber, data = shuffled_data)
+  permuted_stats[i] <- summary(model)$r.squared
+}
+
+p_value <- mean(permuted_stats >= baseline_CI_R2)
+p_value
+```
+
+**Permutation Inference - Policy Adoption - Other Policies**
+
+```{r}
+baseline_other <- lm(YearsSinceAdoption ~ AdjMeanChamber, data = joined_both)
+baseline_other_R2 <- summary(baseline_other)$r.squared
+
+n_permutations <- 1000
+permuted_stats <- numeric(n_permutations)
+
+for(i in 1:n_permutations) {
+  shuffled_data <- joined_both
+  shuffled_data$AdjMeanChamber <- sample(joined_both$AdjMeanChamber)
+  model <- lm(YearsSinceAdoption ~ AdjMeanChamber, data = shuffled_data)
+  permuted_stats[i] <- summary(model)$r.squared
+}
+
+p_value <- mean(permuted_stats >= baseline_other_R2)
+p_value
 ```
