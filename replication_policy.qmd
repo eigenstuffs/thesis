@@ -19,7 +19,7 @@ set.seed(07151129)
 Loading data from their replication file
 
 ```{r}
-panel <- read.csv("panel_data_FEB6.csv")
+panel <- read.csv("panel_data_FEB11.csv")
 policies <- read.csv("policies.csv")[,3:29] %>% filter(year >= 1998) # Bergquist & Warshaw 2023
 ```
 
@@ -28,115 +28,86 @@ Modifying data types and joining to panel
 ```{r}
 names(policies)[1:2] <- c("State", "Year")
 policies <- policies %>% filter(State != "DC")
-
-joined <- full_join(policies, panel %>% select(State, Year, Ideology), by = join_by(State, Year))
-#str(joined)
 ```
 
-Imputing the data based on last/next available observation (last to first conservatively estimate, setting rest to 0 as it doesn't really matter)
-
 ```{r}
-names(joined)[3:24] <- paste0("FACTOR_", names(joined)[3:24])
+colnames(policies)
 
-joined_imputed <- joined
+policies_temp <- policies %>% select(-x_rps_targets_bindingonly, -z_gasoline_tax, -x_eers)
+str(policies_temp)
 
-joined_imputed <- joined_imputed %>%
-  group_by(State) %>%
-  arrange(State, Year) %>%
-  mutate(across(starts_with("FACTOR_"), ~na.locf(.x, fromLast = FALSE, na.rm = FALSE))) %>%
-  ungroup()
+colnames(policies_temp) <- 
+  dplyr::recode(colnames(policies_temp),
+                            "abb" = "State", "year" = "Year",
+                            "climate_action_plan_21" = "ClimateActionPlan",
+                            "netmeter_yearadopted_21" = "NetMeter",
+                            "pace_21" = "PACE",
+                            "w_ee_21" = "EfficiencyTargets",
+                            "w_environment_solar_taxcredit_21" = "ResSolarTaxCredit",
+                            "w_low_income_ee_21" = "LowIncomeEff",
+                            "public_building_standards" = "PublicBuildingStandards",
+                            "w4_electric_decoupling_21" = "ElectricDecoupling",
+                            "w4_gas_decoupling_21" = "GasDecoupling",
+                         "w_gg_rr_21" = "PowerPlantsReport",
+                         "environment_ca_car_emissions_standards_21" = "CACarStandards",
+                         "environment_preemption_naturalgasbans" = "ProhibitGasHookupBans",
+                         "w4_environment_state_rps_21" = "RPS",
+                         "w_ghg_targets_21" = "GHGTargets",
+                         "community_solar" = "CommunitySolar",
+                         "environment_ghg_cap_21" = "UtilitiesGHGCap",
+                         "environment_publicbenefit_funds_21" = "PublicBenefitFunds",
+                         "fgd_21" = "FuelSourceDisclosure",
+                         "ghg_standards_21" = "PerformanceStandards",
+                         "w_complete_streets_21" = "CompleteStreets",
+                         "w_environment_state_nepas_21" = "StateNEPA",
+                         "w_mgpo_21" = "RenewablesOffered")
 
-joined_imputed <- joined_imputed %>%
-  mutate(across(starts_with("FACTOR_"), ~replace_na(.x, 0)))
+carbon_intensity_policies <- c("CommunitySolar", "UtilitiesGHGCap", "FuelSourceDisclosure", "NetMeter","RenewablesOffered", "RPS", "PowerPlantsReport", "ResSolarTaxCredit")
 
-joined_imputed[3:24] <- lapply(joined_imputed[3:24], as.factor)
+energy_intensity_policies <- c("CACarStandards", "ProhibitGasHookupBans", "PublicBuildingStandards", "CompleteStreets", "EfficiencyTargets", "LowIncomeEff", "ElectricDecoupling", "GasDecoupling", "GasDecoupling")
 
-cols_to_encode <- sapply(joined_imputed, function(x) is.factor(x) && length(unique(x)) > 2)
-factor_cols <- names(joined_imputed)[cols_to_encode]
-```
+other_policies <- c("ClimateActionPlan", "PublicBenefitFunds", "PerformanceStandards", "PACE", "StateNEPA", "GHGTargets")
 
-One-hot encoding
+count <- policies_temp %>%
+  mutate(sum = rowSums(across(c(-State, -Year)), na.rm = TRUE))
 
-```{r}
-joined_onehot <- dummy_cols(joined_imputed, select_columns = factor_cols, remove_first_dummy = TRUE)
+count <- count %>% select(State, Year, sum)
+colnames(count)[3] <- "Score"
 
-joined_onehot <- joined_onehot %>% select(-factor_cols)
-```
+count <- merge(count, policies %>% select(State, Year, x_rps_targets_bindingonly, z_gasoline_tax, x_eers), by = c("State", "Year"))
+count <- merge(count, panel, c("State", "Year"))
 
-Turning back to integer so we can make long
+## carbon intensity
 
-```{r}
-str(joined_onehot)
+CI_pol <- policies_temp %>% select(State, Year, all_of(carbon_intensity_policies)) %>%
+  mutate(sum = rowSums(across(c(-State, -Year)), na.rm = TRUE))
 
-joined_onehot[3:13] <- lapply(joined_onehot[3:13], as.numeric)
-joined_onehot[3:13] <- joined_onehot[3:13] - 1 # adjusting as factors coerce to 1 and 2
-```
+CI_pol <- CI_pol %>% select(State, Year, sum)
+colnames(CI_pol)[3] <- "CI_Score"
 
-Getting first year adopted for each state/policy
+## energy intensity
 
-```{r}
-long_policies <- joined_onehot %>%
-  pivot_longer(
-    cols = starts_with("FACTOR_"),
-    names_to = "Policy",
-    values_to = "Adopted"
-  ) %>%
-  filter(Adopted == 1) 
+EI_pol <- policies_temp %>% select(State, Year, all_of(energy_intensity_policies)) %>%
+  mutate(sum = rowSums(across(c(-State, -Year)), na.rm = TRUE))
 
-first_year_adopted <- long_policies %>%
-  group_by(State, Policy) %>%
-  summarize(first_year = min(Year)) %>%
-  ungroup()
-```
+EI_pol <- EI_pol %>% select(State, Year, sum)
+colnames(EI_pol)[3] <- "EE_Score"
 
-Rename policies
+###
 
-```{r}
-str(first_year_adopted)
-first_year_adopted$Policy <- 
-  dplyr::recode(first_year_adopted$Policy,
-                            "FACTOR_climate_action_plan_21" = "ClimateActionPlan",
-                            "FACTOR_netmeter_yearadopted_21" = "NetMeter",
-                            "FACTOR_pace_21" = "PACE",
-                            "FACTOR_w_ee_21_1" = "EfficiencyTargets_1",
-                            "FACTOR_w_environment_solar_taxcredit_21_1" = "ResSolarTaxCredit_1",
-                            "FACTOR_w_low_income_ee_21_2" = "LowIncomeEff_2",
-                            "FACTOR_public_building_standards" = "PublicBuildingStandards",
-                            "FACTOR_w4_electric_decoupling_21_2" = "ElectricDecoupling_2",
-                            "FACTOR_w4_gas_decoupling_21_2" = "GasDecoupling_2",
-                         "FACTOR_w_gg_rr_21_1" = "PowerPlantsReport_1",
-                         "FACTOR_w4_gas_decoupling_21_1" = "GasDecoupling_1",
-                         "FACTOR_w4_gas_decoupling_21_3" = "GasDecoupling_3",
-                         "FACTOR_w_ee_21_2" = "EfficiencyTargets_2",
-                         "FACTOR_w_low_income_ee_21_1" = "LowIncomeEff_1",
-                         "FACTOR_environment_ca_car_emissions_standards_21" = "CACarStandards",
-                         "FACTOR_environment_preemption_naturalgasbans" = "ProhibitGasHookupBans",
-                         "FACTOR_w4_electric_decoupling_21_1" = "ElectricDecoupling_1",
-                         "FACTOR_w4_environment_state_rps_21_2" = "RPS_2",
-                         "FACTOR_w_environment_solar_taxcredit_21_2" = "ResSolarTaxCredit_2",
-                         "FACTOR_w_ghg_targets_21_1" = "GHGTargets_1",
-                         "FACTOR_community_solar" = "CommunitySolar",
-                         "FACTOR_environment_ghg_cap_21" = "UtilitiesGHGCap",
-                         "FACTOR_environment_publicbenefit_funds_21" = "PublicBenefitFunds",
-                         "FACTOR_fgd_21" = "FuelSourceDisclosure",
-                         "FACTOR_ghg_standards_21" = "PerformanceStandards",
-                         "FACTOR_w4_electric_decoupling_21_3" = "ElectricDecoupling_3",
-                         "FACTOR_w4_environment_state_rps_21_3" = "RPS_3",
-                         "FACTOR_w_complete_streets_21_2" = "CompleteStreets_2",
-                         "FACTOR_w_environment_state_nepas_21_2" = "StateNEPA_2",
-                         "FACTOR_w_gg_rr_21_2" = "PowerPlantsReport_2",
-                         "FACTOR_w_ghg_targets_21_2" = "GHGTargets_2",
-                         "FACTOR_w_mgpo_21_2" = "RenewablesOffered_2",
-                         "FACTOR_w_environment_state_nepas_21_1" = "StateNEPA_1",
-                         "FACTOR_w_mgpo_21_1" = "RenewablesOffered_1",
-                         "FACTOR_w4_environment_state_rps_21_1" = "RPS_1",
-                         "FACTOR_w_complete_streets_21_1" = "CompleteStreets_1")
+other_pol <- policies_temp %>% select(State, Year, all_of(other_policies)) %>%
+  mutate(sum = rowSums(across(c(-State, -Year)), na.rm = TRUE))
 
-unique(first_year_adopted$Policy)
-```
+other_pol <- other_pol %>% select(State, Year, sum)
+colnames(other_pol)[3] <- "Other_Score"
 
-Export first year adopted as csv
+###
 
-```{r}
-write.csv(first_year_adopted, "policy_adoption_FEB7.csv", row.names = FALSE)
+count <- merge(count, CI_pol, by = c("State", "Year"))
+count <- merge(count, EI_pol, by = c("State", "Year"))
+count <- merge(count, other_pol, by = c("State", "Year"))
+
+###
+
+write.csv(count, "panel_with_count_FEB11.csv", row.names = FALSE)
 ```

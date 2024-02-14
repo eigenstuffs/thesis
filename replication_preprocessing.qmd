@@ -29,7 +29,7 @@ ei <- read.csv("data/raw_ei.csv")
 gdpcurrent <- read.csv("data/raw_currentgdp.csv")
 pop <- read.csv("data/raw_pop.csv")
 ideology <- read_dta("data/raw_shormccarty.dta")
-wages <- read.csv("data/raw_wage.csv")
+employment <- read.csv("data/raw_employment.csv")
 urban <- read.csv("data/raw_urban.csv")
 states <- as.data.frame(state.x77)
 ```
@@ -82,8 +82,8 @@ ci <- ci[2:52,1:53]
 ei <- ei[2:53,]
 colnames(ei) <- ei[1,]
 ei <- ei[2:52,1:63]
-colnames(wages) <- wages[3,]
-wages <- wages[4:156,]
+employment <- employment %>% select(-LineCode)
+colnames(employment)[1:2] <- c("State", "Industry")
 
 urban <- urban %>% select(STATE.ABBREV, X2020.PCT.URBAN.POP, X2010.PCT.URBAN.POP)
 colnames(urban) <- c("State", "2020", "2010")
@@ -91,9 +91,21 @@ urban <- urban %>% filter(State %in% state_mapping$Abbreviation)
 urban <- melt(urban, "State")
 colnames(urban) <- c("State", "Year", "PercentUrban")
 
+total_empl <- employment %>% filter(Industry == "Total employment (number of jobs)")
+farm_empl <- employment %>% filter(Industry == "  Farm employment")
+manu_empl <- employment %>% filter(Industry == "      Manufacturing")
 
-total <- wages[wages$LineCode=="50",]
-farm <- wages[wages$LineCode=="81",]
+total_empl <- total_empl %>% select(-Industry)
+farm_empl <- farm_empl %>% select(-Industry)
+manu_empl <- manu_empl %>% select(-Industry)
+
+total_empl <- melt(total_empl, id = "State")
+farm_empl <- melt(farm_empl, id = "State")
+manu_empl <- melt(manu_empl, id = "State")
+
+colnames(total_empl) <- c("State", "Year", "TotalEmployment")
+colnames(farm_empl) <- c("State", "Year", "FarmEmployment")
+colnames(manu_empl) <- c("State", "Year", "ManufacturingEmployment")
 
 colnames(gdpcurrent) <- gdpcurrent[2,]
 gdpcurrent <- gdpcurrent[3:53,1:26]
@@ -113,16 +125,7 @@ colnames(ei) <- c("State", "Year", "EnergyIntensity")
 colnames(gdpcurrent) <- c("State", "Year", "RealGDP")
 colnames(pop) <- c("State", "Year", "Population")
 
-total <- total[,c(2,5:27)]
-farm <- farm[,c(2,5:27)]
-
-total <- melt(total, id = "GeoName")
-farm <- melt(farm, id = "GeoName")
-
-colnames(total) <- c("State", "Year", "TotalWages")
-colnames(farm) <- c("State", "Year", "FarmWages")
-
-list <- list(ci, ei, gdpcurrent, pop, farm, total, urban)
+list <- list(ci, ei, gdpcurrent, pop, urban, total_empl, manu_empl, farm_empl)
 ```
 
 Applying transformations to data types and merging
@@ -185,8 +188,8 @@ Creating variables
 
 ```{r}
 p$GDPPerCapita <- p$RealGDP/p$Population
-p$FarmProportion <- p$FarmWages/p$TotalWages
-p$PopDens <- p$Population/p$Area
+p$PropManuEmployment <- p$ManufacturingEmployment/p$TotalEmployment
+p$PropFarmEmployment <- p$FarmEmployment/p$TotalEmployment
 
 p <- p %>%
   group_by(State) %>%
@@ -194,7 +197,7 @@ p <- p %>%
   mutate(across(starts_with("PercentUrb"), ~na.locf(.x, fromLast = TRUE, na.rm = FALSE))) %>%
   ungroup()
 
-p <- p %>% select(-Area, -TotalWages, -FarmWages)
+p <- p %>% select(-Area, -RealGDP, -TotalEmployment, -FarmEmployment, -ManufacturingEmployment)
 ```
 
 Loading spatial data
@@ -251,5 +254,5 @@ p <- left_join(p, na.omit(as.data.frame(wind_with_states)) %>% select(-geometry)
 Export panel data as csv
 
 ```{r}
-write.csv(p, "panel_data_FEB6.csv", row.names = FALSE)
+write.csv(p, "panel_data_FEB11.csv", row.names = FALSE)
 ```

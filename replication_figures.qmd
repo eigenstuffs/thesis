@@ -1,0 +1,65 @@
+---
+title: "replication_figures"
+format: html
+editor: visual
+---
+
+**Figure Replication**
+
+```{r}
+library(jtools)
+library(tidyverse)
+
+
+```
+
+```{r}
+figure_data <- panel %>%
+  group_by(Year) %>%
+  summarise(AvgScore = mean(Score, na.rm = TRUE), AvgCI = mean(CI_Score, na.rm = TRUE),
+            AvgEE = mean(EE_Score, na.rm = TRUE), AvgIdeology = mean(Ideology, na.rm=TRUE))
+
+unpivoted_data <- figure_data
+
+figure_data <- pivot_longer(figure_data, 2:5)
+colnames(figure_data) <- c("Year", "Score", "Value")
+
+ggplot(data = figure_data %>% filter(Score != "AvgScore") %>% filter(Score != "AvgIdeology"), aes(x = Year, y = Value, shape = Score)) + geom_point() + scale_shape_manual(values=c(1,16)) + theme_update(legend.position = c(0.1,0.8))
+
+ggplot(data = unpivoted_data) + 
+  geom_line(aes(x = Year, y = AvgIdeology)) +
+  labs(x = "Year", y = "Average Ideology",
+       title = "Average Ideology Over Time")
+
+ggplot(data = panel, aes(x = Ideology, y = x_rps_targets_bindingonly)) +
+  geom_point() + geom_smooth(method = lm, se = FALSE) + labs(x="Ideology", y="Percentage", title= "Binding RPS Percentage Targets and Ideology")
+
+ggplot(data = panel, aes(x = Ideology, y = z_gasoline_tax)) +
+  geom_point() + geom_smooth(method = lm, se = FALSE) + labs(x="Ideology", y="Tax",title = "Gasoline Taxes and Ideology")
+
+ggplot(data = panel, aes(x = Ideology, y = x_eers)) +
+  geom_point() + geom_smooth(method = lm, se = FALSE) + labs(x="Ideology", y="Percentage",title = "Percentage of Utilities' Needs Procured w/ Efficiency Measures and Ideology")
+
+ggplot(data = panel, aes(x=Ideology, y=Score)) + geom_point() + geom_smooth(method = "lm", se = TRUE) + xlim(c(-1.4,1.2)) + labs(x="Ideology", y="Score",title = "Overall Score and Ideology")
+
+ggplot(data = panel, aes(x=Ideology, y=CI_Score)) + geom_point() + geom_smooth(method = "lm", se = TRUE) + xlim(c(-1.4,1.2)) + ylim(c(0,15))+ labs(x="Ideology", y="Score",title = "Carbon Intensity Score and Ideology")
+
+ggplot(data = panel, aes(x=Ideology, y=EE_Score)) + geom_point() + geom_smooth(method = "lm", se = TRUE) + xlim(c(-1.4,1.2)) + ylim(c(0,15))+ labs(x="Ideology", y="Score",title = "Energy Efficiency Score and Ideology")
+
+ggplot(data = panel, aes(x=CI_Score, y=log(CarbonIntensity))) + geom_point() + geom_smooth(method = "lm", se = TRUE) + labs(x="Carbon Intensity Score", y="Carbon Intensity",title = "Carbon Intensity Score vs. Carbon Intensity")
+
+ggplot(data = panel, aes(x=EE_Score, y=log(EnergyIntensity))) + geom_point() + geom_smooth(method = "lm", se = TRUE)+  labs(x="Energy Efficiency Score", y="Energy Intensity",title = "Energy Efficiency Score vs. Energy Intensity")
+
+plot_summs(m1,m2,m3,m4,model.names = c("log(CarbonIntensity)", "log(EnergyIntensity", "CI subsetted data", "EI subsetted data"), coefs = "Ideology", plot.distributions = TRUE, scale=TRUE, point.size = 2, to.file = "pdf", file.name = "fe_plot")
+
+plot_summs(m9,m10,m11,model.names = c("All Policies", "Carbon Intensity", "Energy Efficiency"), coefs = "Ideology", plot.distributions = TRUE, scale=TRUE, point.size = 2, to.file = "pdf", file.name = "policies_plot")
+
+export_summs(m1, m2, m3, m4, model.names = c("log(CarbonIntensity)", "log(EnergyIntensity", "CI subsetted data", "EI subsetted data"), coefs = c("Ideology"), to.file = "pdf", scale = TRUE, error_format = "[{conf.low}, {conf.high}]", robust = "HC3", file.name = "fe_table")
+
+export_summs(m5,m6,m7,m8, model.names = c("log(CarbonIntensity)", "log(EnergyIntensity", "CI subsetted data", "EI subsetted data"),
+             robust = "HC3", to.file = "pdf", scale = TRUE, error_format = "[{conf.low}, {conf.high}]", file.name = "mlr_table")
+
+plot_summs(m5,m6,m7,m8,model.names = c("log(CarbonIntensity)", "log(EnergyIntensity", "CI subsetted data", "EI subsetted data"), plot.distributions = TRUE, scale=TRUE, point.size = 2,, to.file = "pdf", file.name = "mlr_plot")
+
+export_summs(m9,m10,m11,model.names = c("All Policies", "Carbon Intensity", "Energy Efficiency"), coefs = "Ideology", error_format = "[{conf.low}, {conf.high}]", robust = "HC3", scale = TRUE, to.file = "pdf", file.name = "policies_table")
+```
