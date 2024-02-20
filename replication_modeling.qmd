@@ -401,10 +401,10 @@ ggplot(data = unpivoted_data) +
   labs(x = "Year", y = "Average Ideology",
        title = "Average Ideology Over Time")
 
-ggplot(data = panel, aes(x = Ideology, y = x_rps_targets_bindingonly)) +
+ggplot(data = panel %>% filter(Year >= 2015), aes(x = Ideology, y = x_rps_targets_bindingonly)) +
   geom_point() + geom_smooth(method = lm, se = FALSE) + labs(x="Ideology", y="Percentage", title= "Binding RPS Percentage Targets and Ideology")
 
-ggplot(data = panel, aes(x = Ideology, y = z_gasoline_tax)) +
+ggplot(data = panel %>% filter(Year >= 2015), aes(x = Ideology, y = z_gasoline_tax)) +
   geom_point() + geom_smooth(method = lm, se = FALSE) + labs(x="Ideology", y="Tax",title = "Gasoline Taxes and Ideology")
 
 ggplot(data = panel, aes(x = Ideology, y = x_eers)) +
@@ -423,6 +423,10 @@ ggplot(data = panel, aes(x=EE_Score, y=log(EnergyIntensity))) + geom_point() + g
 
 print("OLS-FE Figures")
 
+export_summs(m1, m2, m3, m4, model.names = c("log(CarbonIntensity)", "log(EnergyIntensity)", "CI subsetted data", "EI subsetted data"), coefs = c("Ideology"), to.file = "docx", error_format = "[{conf.low}, {conf.high}]", robust = "HC3", file.name = "fe_table.docx")
+
+plot_summs(m1,m2,m3,m4,model.names = c("log(CarbonIntensity)", "log(EnergyIntensity)", "CI subsetted data", "EI subsetted data"), coefs = "Ideology", plot.distributions = TRUE, point.size = 2, to.file = "pdf", file.name = "fe_plot.pdf")
+
 export_summs(m1, m2, m3, m4, model.names = c("log(CarbonIntensity)", "log(EnergyIntensity)", "CI subsetted data", "EI subsetted data"), coefs = c("Ideology"), to.file = "docx", scale = TRUE, error_format = "[{conf.low}, {conf.high}]", robust = "HC3", file.name = "fe_table.docx")
 
 plot_summs(m1,m2,m3,m4,model.names = c("log(CarbonIntensity)", "log(EnergyIntensity)", "CI subsetted data", "EI subsetted data"), coefs = "Ideology", plot.distributions = TRUE, scale=TRUE, point.size = 2, to.file = "pdf", file.name = "fe_plot.pdf")
@@ -430,11 +434,21 @@ plot_summs(m1,m2,m3,m4,model.names = c("log(CarbonIntensity)", "log(EnergyIntens
 print("MLR Figures")
 
 export_summs(m5,m6,m7,m8, model.names = c("log(CarbonIntensity)", "log(EnergyIntensity)", "CI subsetted data", "EI subsetted data"),
+             robust = "HC3", to.file = "docx", error_format = "[{conf.low}, {conf.high}]", file.name = "mlr_table.docx")
+
+plot_summs(m5,m6,m7,m8,model.names = c("log(CarbonIntensity)", "log(EnergyIntensity)", "CI subsetted data", "EI subsetted data"), plot.distributions = TRUE, point.size = 2, to.file = "pdf", file.name = "mlr_plot.pdf")
+
+export_summs(m5,m6,m7,m8, model.names = c("log(CarbonIntensity)", "log(EnergyIntensity)", "CI subsetted data", "EI subsetted data"),
              robust = "HC3", to.file = "docx", scale = TRUE, error_format = "[{conf.low}, {conf.high}]", file.name = "mlr_table.docx")
 
 plot_summs(m5,m6,m7,m8,model.names = c("log(CarbonIntensity)", "log(EnergyIntensity)", "CI subsetted data", "EI subsetted data"), plot.distributions = TRUE, scale=TRUE, point.size = 2, to.file = "pdf", file.name = "mlr_plot.pdf")
 
 print("Policy Adoption Figures")
+
+plot_summs(m9,m10,m11,m12,model.names = c("All Policies", "Carbon Intensity", "Energy Efficiency", "Other"), coefs = "Ideology", plot.distributions = TRUE, point.size = 2, to.file = "pdf", file.name = "policies_plot.pdf")
+
+
+export_summs(m9,m10,m11,m12,model.names = c("All Policies", "Carbon Intensity", "Energy Efficiency", "Other"), coefs = "Ideology", error_format = "[{conf.low}, {conf.high}]", robust = "HC3", to.file = "pdf", file.name = "policies_table.pdf")
 
 plot_summs(m9,m10,m11,m12,model.names = c("All Policies", "Carbon Intensity", "Energy Efficiency", "Other"), coefs = "Ideology", plot.distributions = TRUE, scale=TRUE, point.size = 2, to.file = "pdf", file.name = "policies_plot.pdf")
 
