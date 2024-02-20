@@ -20,7 +20,7 @@ Loading data from their replication file
 
 ```{r}
 panel <- read.csv("panel_data_FEB11.csv")
-policies <- read.csv("policies.csv")[,3:29] %>% filter(year >= 1998) # Bergquist & Warshaw 2023
+policies <- read.csv("policies.csv")[,3:29] %>% filter(year >= 1998) # Bergquist & Warshaw 202
 ```
 
 Modifying data types and joining to panel
@@ -110,4 +110,29 @@ count <- merge(count, other_pol, by = c("State", "Year"))
 ###
 
 write.csv(count, "panel_with_count_FEB11.csv", row.names = FALSE)
+```
+
+```{r}
+policies_subset <- policies %>% filter(year >= 2005) %>% filter(year <= 2010)
+
+policies_subset <- data.frame(lapply(policies_subset, function(x) na.locf(x, na.rm = FALSE)))
+
+policies_subset <- data.frame(lapply(policies_subset, function(x) {
+  rev(na.locf(rev(x), na.rm = FALSE))
+}))
+
+policies_subset <- policies_subset %>% select(-environment_preemption_naturalgasbans, -w_low_income_ee_21)
+
+for (col in names(policies_subset %>% select(-year, -abb))) {
+  formula <- as.formula(paste(as.factor(col), "~ year"))
+  model <- lm(formula, data = policies_subset)
+  if (summary(model)$coefficients['year', 'Pr(>|t|)'] < 0.05) {
+    print("SIGNIFICANT:")
+    print(formula)
+    print(summary(model))
+  } else {
+    print("NOT SIGNIFICANT:")
+    print(formula)
+  }
+}
 ```

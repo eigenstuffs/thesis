@@ -24,6 +24,7 @@ set.seed(07151129)
 Reading all files as they were downloaded
 
 ```{r}
+emissions <- read.csv("data/raw_emissions.csv")
 ci <- read.csv("data/raw_ci.csv")
 ei <- read.csv("data/raw_ei.csv")
 gdpcurrent <- read.csv("data/raw_currentgdp.csv")
@@ -76,6 +77,8 @@ convert_state_name <- function(state_name) {
 Subsetting, renaming columns, and reshaping to long format
 
 ```{r}
+colnames(emissions) <- emissions[4,]
+emissions <- emissions[5:55,c(1,30:52)]
 ci <- ci[5:56,]
 colnames(ci) <- ci[1,]
 ci <- ci[2:52,1:53]
@@ -113,6 +116,8 @@ gdpcurrent <- gdpcurrent[3:53,1:26]
 colnames(pop) <- pop[2,]
 pop <- pop[3:53,1:63]
 
+emissions <- melt(emissions, id = "State")
+
 ci <- melt(ci, id = "State")
 ei <- melt(ei, id = "State")
 
@@ -120,12 +125,13 @@ gdpcurrent <- melt(gdpcurrent, id = "State")
 
 pop <- melt(pop, id = "State")
 
+colnames(emissions) <- c("State", "Year", "Emissions")
 colnames(ci) <- c("State", "Year", "CarbonIntensity")
 colnames(ei) <- c("State", "Year", "EnergyIntensity")
 colnames(gdpcurrent) <- c("State", "Year", "RealGDP")
 colnames(pop) <- c("State", "Year", "Population")
 
-list <- list(ci, ei, gdpcurrent, pop, urban, total_empl, manu_empl, farm_empl)
+list <- list(emissions, ci, ei, gdpcurrent, pop, urban, total_empl, manu_empl, farm_empl)
 ```
 
 Applying transformations to data types and merging
@@ -187,6 +193,7 @@ p <- merge(p, states, by="State")
 Creating variables
 
 ```{r}
+p$EmissionsPerCapita <- p$Emissions/p$Population
 p$GDPPerCapita <- p$RealGDP/p$Population
 p$PropManuEmployment <- p$ManufacturingEmployment/p$TotalEmployment
 p$PropFarmEmployment <- p$FarmEmployment/p$TotalEmployment
@@ -197,7 +204,7 @@ p <- p %>%
   mutate(across(starts_with("PercentUrb"), ~na.locf(.x, fromLast = TRUE, na.rm = FALSE))) %>%
   ungroup()
 
-p <- p %>% select(-Area, -RealGDP, -TotalEmployment, -FarmEmployment, -ManufacturingEmployment)
+p <- p %>% select(-Area, -RealGDP, -TotalEmployment, -FarmEmployment, -ManufacturingEmployment, -Emissions)
 ```
 
 Loading spatial data
@@ -254,5 +261,5 @@ p <- left_join(p, na.omit(as.data.frame(wind_with_states)) %>% select(-geometry)
 Export panel data as csv
 
 ```{r}
-write.csv(p, "panel_data_FEB11.csv", row.names = FALSE)
+write.csv(p, "panel_data_FEB20.csv", row.names = FALSE)
 ```
