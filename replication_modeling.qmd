@@ -29,7 +29,8 @@ theme_set(theme_pubr())
 
 ```{r}
 panel <- read.csv("panel_with_count_FEB20.csv")
-permutation_coefficients <- data.frame(CarbonIntensity = rep(NA, 1000),
+permutation_coefficients <- data.frame(Emissions = rep(NA, 1000),
+                                       CarbonIntensity = rep(NA, 1000),
                                        EnergyIntensity = rep(NA, 1000),
                                        PolicyScore = rep(NA, 1000),
                                        CIScore = rep(NA, 1000),
@@ -138,6 +139,49 @@ influential_m6 <- which(cooks_distance_m6 > (4/(length(cooks_distance_m6)-length
 m8 <- update(m6, subset = -influential_m6)
 ```
 
+**Permutation Inference - Per Capita Emissions \~ Ideology with State/Year FEs**
+
+```{r}
+baseline_emissions_FE <- lm(log(EmissionsPerCapita) ~ Ideology + factor(State) + factor(Year), data = panel)
+
+baseline_coef_Ideology <- coef(baseline_emissions_FE)["Ideology"]
+
+n_permutations <- 1000
+permuted_coefs <- numeric(n_permutations)
+
+for(i in 1:n_permutations) {
+  # Rotate ideologies within each state
+  shuffled_data <- panel %>%
+    group_by(State) %>%
+    mutate(
+      order = row_number(), # Preserves original order
+      shift = sample(1:n(), 1), # Random shift for each state
+      Ideology = Ideology[(order - shift) %% n() + 1] # Apply shift
+    ) %>%
+    ungroup()
+  
+  model <- lm(log(EmissionsPerCapita) ~ Ideology + factor(State) + factor(Year), data=shuffled_data)
+  permuted_coefs[i] <- coef(model)["Ideology"]
+}
+
+emissions_baseline <- baseline_coef_Ideology
+emissions_p <- mean(abs(permuted_coefs) >= abs(baseline_coef_Ideology))
+
+permutation_coefficients$Emissions <- permuted_coefs
+
+p_value <- mean(abs(permuted_coefs) >= abs(baseline_coef_Ideology))
+
+ggplot() + 
+  geom_histogram(aes(x = permuted_coefs), fill = "gray", color = "white") + 
+  geom_vline(aes(xintercept = baseline_coef_Ideology), color = "black") +
+  labs(x = "Effect Size", y = "Count",
+       title = "Per Capita Emissions ~ Ideology with State/Year FEs",
+       subtitle = paste("p =", p_value))
+
+
+ggsave("emissions_permutation.png")
+```
+
 **Permutation Inference - Carbon Intensity \~ Ideology with State/Year FEs**
 
 ```{r}
@@ -175,7 +219,7 @@ ggplot() +
   geom_vline(aes(xintercept = baseline_coef_Ideology), color = "black") +
   labs(x = "Effect Size", y = "Count",
        title = "Carbon Intensity ~ Ideology with State/Year FEs",
-       subtitle = paste("p =", p_value)) + science_theme
+       subtitle = paste("p =", p_value))
 
 
 ggsave("carbonintensity_permutation.png")
@@ -220,7 +264,7 @@ ggplot() +
   geom_vline(aes(xintercept = baseline_coef_Ideology), color = "black") +
   labs(x = "Effect Size", y = "Count",
        title = "Energy Intensity ~ Ideology with State/Year FEs",
-       subtitle = paste("p =", p_value)) + science_theme
+       subtitle = paste("p =", p_value)) 
 
 ggsave("energyintensity_permutation.png")
 ```
@@ -273,7 +317,7 @@ ggplot() +
   geom_vline(aes(xintercept = baseline_coef_Ideology), color = "black") +
   labs(x = "Effect Size", y = "Count",
        title = "Climate Policy Score ~ Ideology with State/Year FEs",
-       subtitle = paste("p =", p_value)) + science_theme
+       subtitle = paste("p =", p_value))
 
 
 
@@ -326,7 +370,7 @@ ggplot() +
   geom_vline(aes(xintercept = baseline_coef_Ideology), color = "black") +
   labs(x = "Effect Size", y = "Count",
        title = "Carbon Intensity Policy ~ Ideology with State/Year FEs",
-       subtitle = paste("p =", p_value)) + science_theme
+       subtitle = paste("p =", p_value))
 
 ggsave("carbonpolicy_permutation.png")
 ```
@@ -378,7 +422,7 @@ ggplot() +
   geom_vline(aes(xintercept = baseline_coef_Ideology), color = "black") +
   labs(x = "Effect Size", y = "Count",
        title = "Energy Intensity Policy ~ Ideology with State/Year FEs",
-       subtitle = paste("p =", p_value)) + science_theme
+       subtitle = paste("p =", p_value))
 
 ggsave("energyscore_permutation.png")
 ```
@@ -438,7 +482,7 @@ figure_data <- panel %>%
 
 unpivoted_data <- figure_data
 
-figure_data <- pivot_longer(figure_data, 2:5)
+figure_data <- pivot_longer(figure_data, 2:7)
 colnames(figure_data) <- c("Year", "Score", "Value")
 
 ggplot(data = figure_data %>% filter(Score != "AvgScore") %>% filter(Score != "AvgIdeology"), aes(x = Year, y = Value, shape = Score)) + geom_point() + scale_shape_manual(values=c(1,16)) + theme_update(legend.position = c(0.1,0.8))
@@ -450,13 +494,13 @@ ggplot(data = unpivoted_data) +
 
 ggplot(data = unpivoted_data) + 
   geom_line(aes(x = AvgEI_Score, y = AvgEI)) +
-  labs(x = "EI Score", y = "EI",
-       title = "EI Score vs. EI")
+  labs(x = "Energy Efficiency Policy Score", y = "Energy Efficiency",
+       title = "Policy Score vs. Outcome")
 
 ggplot(data = unpivoted_data) + 
   geom_line(aes(x = AvgCI_Score, y = AvgCI)) +
-  labs(x = "CI Score", y = "CI",
-       title = "CI Score vs. CI")
+  labs(x = "Carbon Efficiency Policy Score", y = "Carbon Efficiency",
+       title = "Policy Score vs. Outcome")
 
 ggplot(data = unpivoted_data) + 
   geom_line(aes(x = Year, y = AvgIdeology)) +
@@ -523,6 +567,11 @@ export_summs(m9,m10,m11,m12,model.names = c("All Policies", "Carbon Intensity", 
 \
 
 ```{r}
+permutation_coefficients$Emissions_Bool <- ifelse(
+  permutation_coefficients$Emissions >= emissions_baseline,
+  TRUE, FALSE
+)
+
 permutation_coefficients$CarbonIntensity_Bool <- ifelse(
   permutation_coefficients$CarbonIntensity >= carbon_intensity_baseline,
   TRUE, FALSE
@@ -548,6 +597,9 @@ permutation_coefficients$EIScore_Bool <- ifelse(
   TRUE, FALSE
 )
 
+hist0 <- gghistogram(permutation_coefficients, x = "Emissions", fill = "Emissions_Bool", color = "NA", bins = 20) +  geom_vline(aes(xintercept = emissions_baseline), linetype = "dashed") + labs(title = "Per Capita Emissions", x = "", y = "", subtitle = paste("p =", emissions_p), 'fill' = "Above baseline?") + theme_replace(axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) + scale_x_continuous(breaks = seq(from = -.04, to = .04, by = .02))
+
 hist1 <- gghistogram(permutation_coefficients, x = "CarbonIntensity", fill = "CarbonIntensity_Bool", color = "NA", bins = 20) +  geom_vline(aes(xintercept = carbon_intensity_baseline), linetype = "dashed") + labs(title = "Carbon Intensity", x = "", y = "", subtitle = paste("p =", carbon_intensity_p), 'fill' = "Above baseline?") + theme_replace(axis.text.y=element_blank(),
         axis.ticks.y=element_blank()) + scale_x_continuous(breaks = seq(from = -.02, to = .02, by = .02))
 
@@ -563,7 +615,12 @@ hist4 <- gghistogram(permutation_coefficients, x = "CIScore", fill = "CIScore_Bo
 hist5 <- gghistogram(permutation_coefficients, x = "EIScore", fill = "EIScore_Bool", color = "NA", bins = 20) + geom_vline(aes(xintercept = energy_score_baseline), linetype = "dashed") + labs(title = "Energy Policy", x = "", y = "", subtitle = paste("p =", energy_score_p), 'fill' = "Above baseline?") + theme_replace(axis.text.y=element_blank(),
         axis.ticks.y=element_blank()) + scale_x_continuous(breaks = seq(from = -1.5, to = 1.5, by = .5))
 
-ggarrange(ggarrange(hist1, hist2, legend = FALSE, ncol = 2),
-          ggarrange(hist3, legend = FALSE, ncol = 1),
-          ggarrange(hist4, hist5, legend = FALSE, ncol = 2), nrow = 3, common.legend = TRUE)
+multi.page <- ggarrange(ggarrange(hist0, legend = FALSE, ncol = 1),
+          ggarrange(hist1, hist2, legend = FALSE, ncol = 2), nrow = 2, common.legend = TRUE)
+
+multi.page.2 <- ggarrange(ggarrange(hist3, legend = FALSE, ncol = 1),
+          ggarrange(hist4, hist5, legend = FALSE, ncol = 2), nrow = 2, common.legend = TRUE)
+
+ggexport(multi.page, filename = "multi.page.pdf")
+ggexport(multi.page.2, filename = "multi.page.2.pdf")
 ```
