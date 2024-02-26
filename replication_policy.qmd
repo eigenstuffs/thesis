@@ -14,6 +14,7 @@ library(tidyverse)
 library(fastDummies)
 library(zoo)
 library(nnet)
+library(plm)
 set.seed(07151129)
 ```
 
@@ -21,14 +22,14 @@ Loading data from their replication file
 
 ```{r}
 panel <- read.csv("panel_data_FEB20.csv")
-policies <- read.csv("policies.csv")[,3:29] %>% filter(year >= 1998) # Bergquist & Warshaw 202
+
+policies <- read.csv("replication/policies_updated.csv") %>% filter(year >= 1998) %>% filter(abb != "DC") %>% select(-X)
 ```
 
 Modifying data types and joining to panel
 
 ```{r}
 names(policies)[1:2] <- c("State", "Year")
-policies <- policies %>% filter(State != "DC")
 ```
 
 ```{r}
@@ -142,16 +143,15 @@ for (col in names(policies_subset %>% dplyr::select(-year, -abb))) {
 ```{r}
 policies_dupe <- policies
 
-colnames(policies_dupe)[1:2] <- c("State", "Year")
+policies_dupe <- policies_dupe %>% arrange(State, Year)
+
+policies_dupe <- policies_dupe %>%
+  group_by(State) %>%
+  mutate(across(where(is.numeric), ~na.locf(.x, na.rm = FALSE))) %>% # LOCF
+  mutate(across(where(is.numeric), ~na.locf(.x, fromLast = TRUE, na.rm = FALSE))) %>% # NOCB
+  ungroup()
 
 policies_dupe[,3:24] <- lapply(policies_dupe[,3:24], as.factor)
-
-
-policies_dupe <- data.frame(lapply(policies_dupe, function(x) na.locf(x, na.rm = FALSE)))
-
-policies_dupe <- data.frame(lapply(policies_dupe, function(x) {
-  rev(na.locf(rev(x), na.rm = FALSE))
-}))
 
 policies_onehot <- dummy_cols(policies_dupe %>% dplyr::select(-State, -Year), remove_selected_columns = TRUE, remove_first_dummy = TRUE)
 
@@ -159,41 +159,44 @@ policies_dupe <- cbind(policies_dupe$State, policies_dupe$Year, policies_onehot)
 
 colnames(policies_dupe)[1:2] <- c("State", "Year")
 
-policies_dupe <- merge(panel %>% dplyr::select(State, Year, Ideology), policies_dupe)
+policies_dupe <- left_join(panel %>% dplyr::select(State, Year, Ideology), policies_dupe, by = c("State", "Year"))
 
+policies_dupe <- policies_dupe %>% select(-ends_with("_NA"))
+
+unique(policies_dupe$State)
 policies_dupe[,7:42] <- lapply(policies_dupe[,7:42], as.factor)
+
+df <- data.frame(
+  policy = "",
+  estimate = "",
+  p = ""
+)
 
 for (col in names(policies_dupe %>% dplyr::select(-State, -Year, -Ideology))) {
   if (is.factor(get(col, policies_dupe))) {
-    formula <- as.formula(paste(as.factor(col), "~ Ideology + factor(State) + factor(Year)"))
+    formula <- as.formula(paste(as.factor(col), "~ Ideology + factor(Year) + factor(State)"))
     model <- suppressWarnings(glm(formula, data = policies_dupe, family = "binomial"))
-    if (summary(model)$coefficients['Ideology', 'Pr(>|z|)'] < 0.05) {
+    if (summary(model)$coefficients['Ideology', 'Pr(>|z|)'] <= 0.1) {
       print("SIGNIFICANT:")
       print(formula)
-      print(summary(model)$coefficients['Ideology', 'Estimate'])
+      print(exp(summary(model)$coefficients['Ideology', 'Estimate']))
       print(summary(model)$coefficients['Ideology', 'Pr(>|z|)'])
+      
+      df <- rbind(df, c(col, exp(summary(model)$coefficients['Ideology', 'Estimate']),
+                  summary(model)$coefficients['Ideology', 'Pr(>|z|)']))
     } else {
       #print("NOT SIGNIFICANT:")
       #print(formula)
       #print(summary(model)$coefficients['Ideology', 'Pr(>|z|)'])
     } 
   }
+  df$estimate <- as.numeric(df$estimate)
+  df$p <- as.numeric(df$p)
 }
 
+summary(model)
 
-for (col in names(policies_dupe %>% dplyr::select(-State, -Year, -Ideology))) {
-  if (is.factor(get(col, x))) {
-    formula <- as.formula(paste(col, "~ Ideology + factor(State) + factor(Year)"))
-    model <- suppressWarnings(glm(formula, data = policies_dupe))
-    if (summary(model)$coefficients['Ideology', 'Pr(>|t|)'] < 0.01) {
-      #print("SIGNIFICANT:")
-      #print(formula)
-      #print(summary(model)$coefficients['Ideology', 'Pr(>|t|)'])
-    } else {
-      print("NOT SIGNIFICANT:")
-      print(formula)
-      print(summary(model)$coefficients['Ideology', 'Pr(>|t|)'])
-    } 
-  }
-}
+formula
+
+#ggplot(data = df) + geom_col(aes(x= policy, y=estimate)) + theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
 ```
