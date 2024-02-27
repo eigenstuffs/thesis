@@ -64,11 +64,11 @@ colnames(policies_temp) <-
                          "w_environment_state_nepas_21" = "StateNEPA",
                          "w_mgpo_21" = "RenewablesOffered")
 
-carbon_intensity_policies <- c("CommunitySolar", "UtilitiesGHGCap", "FuelSourceDisclosure", "NetMeter","RenewablesOffered", "RPS", "PowerPlantsReport", "ResSolarTaxCredit")
+carbon_intensity_policies <- c("CACarStandards", "CommunitySolar", "FuelSourceDisclosure", "NetMeter","RenewablesOffered", "RPS", "PowerPlantsReport", "ResSolarTaxCredit", "UtilitiesGHGCap", "GHGTargets")
 
-energy_intensity_policies <- c("CACarStandards", "ProhibitGasHookupBans", "PublicBuildingStandards", "CompleteStreets", "EfficiencyTargets", "LowIncomeEff", "ElectricDecoupling", "GasDecoupling", "GasDecoupling")
+energy_intensity_policies <- c("ProhibitGasHookupBans", "PublicBuildingStandards", "CompleteStreets", "EfficiencyTargets", "LowIncomeEff", "ElectricDecoupling", "GasDecoupling", "PerformanceStandards")
 
-other_policies <- c("ClimateActionPlan", "PublicBenefitFunds", "PerformanceStandards", "PACE", "StateNEPA", "GHGTargets")
+other_policies <- c("ClimateActionPlan", "PublicBenefitFunds", "PACE", "StateNEPA")
 
 count <- policies_temp %>%
   mutate(sum = rowSums(across(c(-State, -Year)), na.rm = TRUE))

@@ -1,5 +1,6 @@
 ---
 title: "replication_models"
+author: "Branden Bohrnsen"
 format: html
 editor: visual
 ---
@@ -37,14 +38,16 @@ permutation_coefficients <- data.frame(Emissions = rep(NA, 1000),
 ```{r}
 m1 <- feols(
   data = panel,
-  fml = log(CarbonIntensity) ~ Ideology | State + Year,
-  vcov = "twoway"
+  fml = log(CarbonIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
+  panel.id = ~ State + Year,
+  vcov = "driscoll_kraay"
 )
 
 m2 <- feols(
   data = panel,
-  fml = log(EnergyIntensity) ~ Ideology | State + Year,
-  vcov = "twoway"
+  fml = log(EnergyIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
+  panel.id = ~ State + Year,
+  vcov = "driscoll_kraay"
 )
 
 residuals_m1 <- resid(m1)
@@ -63,14 +66,16 @@ data_reduced_m2 <- panel[-observations_to_exclude_m2, ]
 
 m1_no_outliers <- feols(
   data = data_reduced_m1,
-  fml = log(CarbonIntensity) ~ Ideology | State + Year,
-  vcov = "twoway"
+  fml = log(CarbonIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
+  panel.id = ~ State + Year,
+  vcov = "driscoll_kraay"
 )
 
 m2_no_outliers <- feols(
   data = data_reduced_m2,
-  fml = log(EnergyIntensity) ~ Ideology | State + Year,
-  vcov = "twoway"
+  fml = log(EnergyIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
+  panel.id = ~ State + Year,
+  vcov = "driscoll_kraay"
 )
 
 m1
@@ -87,7 +92,8 @@ m3 <- feols(
   fml = log(CarbonIntensity) ~ Ideology + log(GDPPerCapita) + log(Population) +
     Weighted_GHI + Weighted_Speed120m + PercentUrban + PropManuEmployment + 
     PropFarmEmployment,
-  vcov = ~ State + Year
+  panel.id = ~ State + Year,
+  vcov = "driscoll_kraay"
 )
 
 m4 <- feols(
@@ -95,7 +101,8 @@ m4 <- feols(
   fml = log(EnergyIntensity) ~ Ideology + log(GDPPerCapita) + log(Population) +
     Weighted_GHI + Weighted_Speed120m + PercentUrban + PropManuEmployment + 
     PropFarmEmployment,
-  vcov = ~ State + Year
+  panel.id = ~ State + Year,
+  vcov = "driscoll_kraay"
 )
 
 residuals_m3 <- resid(m3)
@@ -117,7 +124,8 @@ m3_no_outliers <- feols(
   fml = log(CarbonIntensity) ~ Ideology + log(GDPPerCapita) + log(Population) +
     Weighted_GHI + Weighted_Speed120m + PercentUrban + PropManuEmployment + 
     PropFarmEmployment,
-  vcov = ~ State + Year
+  panel.id = ~ State + Year,
+  vcov = "driscoll_kraay"
 )
 
 m4_no_outliers <- feols(
@@ -125,7 +133,8 @@ m4_no_outliers <- feols(
   fml = log(EnergyIntensity) ~ Ideology + log(GDPPerCapita) + log(Population) +
     Weighted_GHI + Weighted_Speed120m + PercentUrban + PropManuEmployment + 
     PropFarmEmployment,
-  vcov = ~ State + Year
+  panel.id = ~ State + Year,
+  vcov = "driscoll_kraay"
 )
 
 m3
@@ -139,11 +148,12 @@ m4_no_outliers
 ```{r}
 baseline_emissions <- feols(
     data = panel,
-    fml = log(EmissionsPerCapita) ~ Ideology | State + Year,
-    vcov = "twoway"
+    fml = log(EmissionsPerCapita) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
+    panel.id = ~ State + Year,
+    vcov = "driscoll_kraay"
   )
 
-coef_emissions <- coef(baseline_emissions)
+coef_emissions <- coef(baseline_emissions)["Ideology"]
 
 for(i in 1:1000) {
   shuffled_data <- panel %>%
@@ -157,8 +167,9 @@ for(i in 1:1000) {
   
   model <- feols(
     data = shuffled_data,
-    fml = log(EmissionsPerCapita) ~ Ideology | State + Year,
-    vcov = "twoway"
+    fml = log(EmissionsPerCapita) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
+    panel.id = ~ State + Year,
+    vcov = "driscoll_kraay"
   )
   
   permutation_coefficients$Emissions[i] <- coef(model)["Ideology"]
@@ -170,11 +181,12 @@ for(i in 1:1000) {
 ```{r}
 baseline_carbon <- feols(
     data = panel,
-    fml = log(CarbonIntensity) ~ Ideology | State + Year,
-    vcov = "twoway"
+    fml = log(CarbonIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
+    panel.id = ~ State + Year,
+    vcov = "driscoll_kraay"
   )
 
-coef_carbon <- coef(baseline_carbon)
+coef_carbon <- coef(baseline_carbon)["Ideology"]
 
 for(i in 1:1000) {
   shuffled_data <- panel %>%
@@ -188,8 +200,9 @@ for(i in 1:1000) {
   
   model <- feols(
     data = shuffled_data,
-    fml = log(CarbonIntensity) ~ Ideology | State + Year,
-    vcov = "twoway"
+    fml = log(CarbonIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
+    panel.id = ~ State + Year,
+    vcov = "driscoll_kraay"
   )
   
   permutation_coefficients$CarbonIntensity[i] <- coef(model)["Ideology"]
@@ -201,11 +214,12 @@ for(i in 1:1000) {
 ```{r}
 baseline_energy <- feols(
     data = panel,
-    fml = log(EnergyIntensity) ~ Ideology | State + Year,
-    vcov = "twoway"
+    fml = log(EnergyIntensity) ~ Ideology + log(Population) + log(GDPPerCapita)| State + Year,
+    panel.id = ~ State + Year,
+    vcov = "driscoll_kraay"
   )
 
-coef_energy <- coef(baseline_energy)
+coef_energy <- coef(baseline_energy)["Ideology"]
 
 for(i in 1:1000) {
   shuffled_data <- panel %>%
@@ -219,8 +233,9 @@ for(i in 1:1000) {
   
   model <- feols(
     data = shuffled_data,
-    fml = log(EnergyIntensity) ~ Ideology | State + Year,
-    vcov = "twoway"
+    fml = log(EnergyIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
+    panel.id = ~ State + Year,
+    vcov = "driscoll_kraay"
   )
   
   permutation_coefficients$EnergyIntensity[i] <- coef(model)["Ideology"]
@@ -232,11 +247,12 @@ for(i in 1:1000) {
 ```{r}
 baseline_policies <- feols(
     data = panel,
-    fml = Score ~ Ideology | State + Year,
-    vcov = "twoway"
+    fml = Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
+    panel.id = ~ State + Year,
+    vcov = "driscoll_kraay"
   )
 
-coef_policies <- coef(baseline_policies)
+coef_policies <- coef(baseline_policies)["Ideology"]
 
 for(i in 1:1000) {
   shuffled_data <- panel %>%
@@ -250,8 +266,9 @@ for(i in 1:1000) {
   
   model <- feols(
     data = shuffled_data,
-    fml = Score ~ Ideology | State + Year,
-    vcov = "twoway"
+    fml = Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
+    panel.id = ~ State + Year,
+    vcov = "driscoll_kraay"
   )
   
   permutation_coefficients$PolicyScore[i] <- coef(model)["Ideology"]
@@ -263,11 +280,12 @@ for(i in 1:1000) {
 ```{r}
 baseline_carbon_policy <- feols(
     data = panel,
-    fml = CI_Score ~ Ideology | State + Year,
-    vcov = "twoway"
+    fml = CI_Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
+    panel.id = ~ State + Year,
+    vcov = "driscoll_kraay"
   )
 
-coef_carbon_policy <- coef(baseline_carbon_policy)
+coef_carbon_policy <- coef(baseline_carbon_policy)["Ideology"]
 
 for(i in 1:1000) {
   shuffled_data <- panel %>%
@@ -281,8 +299,9 @@ for(i in 1:1000) {
   
   model <- feols(
     data = shuffled_data,
-    fml = CI_Score ~ Ideology | State + Year,
-    vcov = "twoway"
+    fml = CI_Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
+    panel.id = ~ State + Year,
+    vcov = "driscoll_kraay"
   )
   
   permutation_coefficients$CIScore[i] <- coef(model)["Ideology"]
@@ -294,11 +313,12 @@ for(i in 1:1000) {
 ```{r}
 baseline_energy_policy <- feols(
     data = panel,
-    fml = EE_Score ~ Ideology | State + Year,
-    vcov = "twoway"
+    fml = EE_Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
+    panel.id = ~ State + Year,
+    vcov = "driscoll_kraay"
   )
 
-coef_energy_policy <- coef(baseline_energy_policy)
+coef_energy_policy <- coef(baseline_energy_policy)["Ideology"]
 
 for(i in 1:1000) {
   shuffled_data <- panel %>%
@@ -312,8 +332,9 @@ for(i in 1:1000) {
   
   model <- feols(
     data = shuffled_data,
-    fml = EE_Score ~ Ideology | State + Year,
-    vcov = "twoway"
+    fml = EE_Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
+    panel.id = ~ State + Year,
+    vcov = "driscoll_kraay"
   )
   
   permutation_coefficients$EIScore[i] <- coef(model)["Ideology"]
@@ -373,7 +394,7 @@ hist3 <- gghistogram(permutation_coefficients, x = "PolicyScore", fill = "Policy
         axis.ticks.y=element_blank()) + scale_x_continuous(breaks = seq(from = -4, to = 1, by = 1))
 
 hist4 <- gghistogram(permutation_coefficients, x = "CIScore", fill = "CIScore_Bool", color = "NA", bins = 20, label.y = F) + geom_vline(aes(xintercept = coef_carbon_policy), linetype = "dashed") + labs(title = "Carbon Policy", x = "", y = "", subtitle = paste("p =", carbon_score_p), 'fill' = "Above baseline?") + theme_replace(axis.text.y=element_blank(),
-        axis.ticks.y=element_blank()) + scale_x_continuous(breaks = seq(from = -1.5, to = 1.5, by = .5))
+        axis.ticks.y=element_blank()) + scale_x_continuous(breaks = seq(from = -2.5, to = 1.5, by = .5))
 
 hist5 <- gghistogram(permutation_coefficients, x = "EIScore", fill = "EIScore_Bool", color = "NA", bins = 20) + geom_vline(aes(xintercept = coef_energy_policy), linetype = "dashed") + labs(title = "Energy Policy", x = "", y = "", subtitle = paste("p =", energy_score_p), 'fill' = "Above baseline?") + theme_replace(axis.text.y=element_blank(),
         axis.ticks.y=element_blank()) + scale_x_continuous(breaks = seq(from = -1.5, to = 1.5, by = .5))
@@ -389,59 +410,40 @@ ggexport(multi.page.2, filename = "multi.page.2.pdf")
 ```
 
 ```{r}
-etable(m1, m1_no_outliers, cluster = ~State+Year, tex = TRUE)
-etable(m2, m2_no_outliers, cluster = ~State+Year, tex = TRUE)
-etable(m3, m3_no_outliers, cluster = ~State+Year, tex = TRUE)
-etable(m4, m4_no_outliers, cluster = ~State+Year, tex = TRUE)
+etable(m1, m1_no_outliers, tex = TRUE)
+etable(m2, m2_no_outliers, tex = TRUE)
+etable(m3, m3_no_outliers, tex = TRUE)
+etable(m4, m4_no_outliers, tex = TRUE)
 
 etable(m1, m1_no_outliers, vcov = "iid", tex = TRUE)
 etable(m2, m2_no_outliers, vcov = "iid", tex = TRUE)
 etable(m3, m3_no_outliers, vcov = "iid", tex = TRUE)
 etable(m4, m4_no_outliers, vcov = "iid", tex = TRUE)
+```
 
-m1
+**BP Tests**
 
-xtable(
-  bptest(lm(log(EmissionsPerCapita) ~ Ideology + factor(State) + factor(Year), data = panel)),
-  caption = "Breusch-Pagan Test"
-)
+```{r}
+bptest(lm(log(EmissionsPerCapita) ~ Ideology + log(Population) + log(GDPPerCapita) + factor(State) + factor(Year), data = panel))
 
-xtable(
-  bptest(lm(log(CarbonIntensity) ~ Ideology + factor(State) + factor(Year), data = panel)),
-  caption = "Breusch-Pagan Test"
-)
+bptest(lm(log(CarbonIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) + factor(State) + factor(Year), data = panel))
 
-xtable(
-  bptest(lm(log(EnergyIntensity) ~ Ideology + factor(State) + factor(Year), data = panel)),
-  caption = "Breusch-Pagan Test"
-)
+bptest(lm(log(EnergyIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) + factor(State) + factor(Year), data = panel))
 
-xtable(
-  bptest(lm(Score ~ Ideology + factor(State) + factor(Year), data = panel)),
-  caption = "Breusch-Pagan Test"
-)
+bptest(lm(Score ~ Ideology + factor(State) + factor(Year), data = panel))
 
-xtable(
-  bptest(lm(CI_Score ~ Ideology + factor(State) + factor(Year), data = panel)),
-  caption = "Breusch-Pagan Test"
-)
+bptest(lm(CI_Score ~ Ideology + factor(State) + factor(Year), data = panel))
 
-xtable(
-  bptest(lm(EE_Score ~ Ideology + factor(State) + factor(Year), data = panel)),
-  caption = "Breusch-Pagan Test"
-)
+bptest(lm(EE_Score ~ Ideology + factor(State) + factor(Year), data = panel))
+```
 
-xtable(bptest(lm(EE_Score ~ Ideology + factor(State) + factor(Year), data = panel)))
+**Wald Tests**
 
-fixest::coefplot(m3)
-
-fixest::coeftable(m3)
-
-
-wald_tests <- data.frame(rbind(wald(m1, print = FALSE),
-                     wald(m1_no_outliers, print = FALSE),
-                     wald(m2, print = FALSE),
-                     wald(m2_no_outliers, print = FALSE),
+```{r}
+wald_tests <- data.frame(rbind(wald(m1, print = FALSE, keep = "Ideology"),
+                     wald(m1_no_outliers, print = FALSE, keep = "Ideology"),
+                     wald(m2, print = FALSE, keep = "Ideology"),
+                     wald(m2_no_outliers, print = FALSE, keep = "Ideology"),
                      wald(m3, keep = "Ideology", print = FALSE),
                      wald(m4, keep = "Ideology", print = FALSE),
                      wald(m3_no_outliers, keep = "Ideology", print = FALSE),
@@ -456,9 +458,9 @@ wald_tests <- cbind(walds, wald_tests)
 
 view(wald_tests)
 
-xtable(wald_tests , label = NULL)
+xtable(wald_tests, label = NULL)
 
-wald_tests <- data.frame(rbind(wald(m1, print = FALSE, vcov = "iid"),
+wald_tests_iid <- data.frame(rbind(wald(m1, print = FALSE, vcov = "iid"),
                      wald(m1_no_outliers, print = FALSE, vcov = "iid"),
                      wald(m2, print = FALSE, vcov = "iid"),
                      wald(m2_no_outliers, print = FALSE, vcov = "iid"),
@@ -467,13 +469,17 @@ wald_tests <- data.frame(rbind(wald(m1, print = FALSE, vcov = "iid"),
                      wald(m3_no_outliers, keep = "Ideology", print = FALSE, vcov = "iid"),
                      wald(m4_no_outliers, keep = "Ideology", print = FALSE, vcov = "iid")))
 
-wald_tests <- data.frame(lapply(wald_tests, function(x) sapply(x, function(y) unlist(y)[1])))
+wald_tests_iid <- data.frame(lapply(wald_tests_iid, function(x) sapply(x, function(y) unlist(y)[1])))
 
 
-wald_tests <- cbind(walds, wald_tests)
+wald_tests_iid <- cbind(walds, wald_tests_iid)
 
-xtable(wald_tests , label = NULL)
+xtable(wald_tests_iid, label = NULL)
+
+view(wald_tests_iid)
 ```
+
+**Data Visualizations**
 
 ```{r}
 plot_data <- panel %>% group_by(Year) %>%
@@ -515,4 +521,30 @@ ggplot(panel) + geom_point(aes(x = Ideology, y = EE_Score)) + geom_smooth(aes(x 
 ggplot(panel) + geom_point(aes(x = Ideology, y = CarbonIntensity))+ geom_smooth(aes(x = Ideology, y = CarbonIntensity), method = "lm") + labs(title = "Ideology vs. Carbon Intensity 1998-2020") + theme_pubr()
 
 ggplot(panel) + geom_point(aes(x = Ideology, y = EnergyIntensity)) + geom_smooth(aes(x = Ideology, y = EnergyIntensity), method = "lm") + labs(title = "Ideology vs. Energy Intensity 1998-2020") + theme_pubr()
+
+ggplot(panel) + geom_point(aes(x = CI_Score, y = CarbonIntensity)) + labs(title = "CI Score vs. Carbon Intensity 1998-2020") + theme_pubr()
+
+ggplot(panel) + geom_point(aes(x = EE_Score, y = EnergyIntensity)) + labs(title = "EI Score vs. Energy Intensity 1998-2020") + theme_pubr()
+```
+
+**Fixed Effects Visualizations**
+
+```{r}
+fixed_m1 <- fixef(m1)
+fixed_m1_no_outliers <- fixef(m1_no_outliers)
+fixed_m2 <- fixef(m2)
+fixed_m2_no_outliers <- fixef(m2_no_outliers)
+
+plot(fixed_m1)
+plot(fixed_m1_no_outliers)
+plot(fixed_m2)
+plot(fixed_m2_no_outliers)
+
+fixed_policy <- fixef(baseline_policies)
+fixed_policy_c <- fixef(baseline_carbon_policy)
+fixed_policy_e <- fixef(baseline_energy_policy)
+
+plot(fixed_policy)
+plot(fixed_policy_c)
+plot(fixed_policy_e)
 ```
