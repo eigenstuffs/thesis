@@ -15,6 +15,8 @@ library(fastDummies)
 library(zoo)
 library(nnet)
 library(plm)
+library(reshape2)
+library(ggpubr)
 set.seed(07151129)
 ```
 
@@ -199,4 +201,18 @@ summary(model)
 formula
 
 #ggplot(data = df) + geom_col(aes(x= policy, y=estimate)) + theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+```
+
+```{r}
+policies_melt <- melt(policies_temp, c("State", "Year"))
+
+policies_melt <- policies_melt %>%
+  group_by(variable) %>%
+  summarise(sum_value = sum(value, na.rm = TRUE))
+
+policies_melt <- policies_melt %>%
+  mutate(variable = factor(variable, levels = variable[order(sum_value)]))
+
+ggplot(policies_melt) + geom_bar(aes(x = variable, sum_value), stat = "identity") + theme_pubr() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + labs(x = "Policy", y = "Count", title = "Policy Counts")
 ```
