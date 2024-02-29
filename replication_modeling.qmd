@@ -60,20 +60,30 @@ p2 <- ggplot(panel, aes(x=log(CarbonIntensity))) + geom_histogram() + labs(y = "
 
 p1 + p2
 
+ggsave("log_carbon_intensity.png")
+
 p3 <- ggplot(panel, aes(x=EnergyIntensity)) + geom_histogram() + labs(y = "Count", title = "Energy Intensity Distributions")
 p4 <- ggplot(panel, aes(x=log(EnergyIntensity))) + geom_histogram() + labs(y = "")
 
 p3 + p4
+
+ggsave("log_energy_intensity.png")
 
 p5 <- ggplot(panel, aes(x=GDPPerCapita)) + geom_histogram() + labs(y = "Count", title = "GDP Per Capita Distributions")
 p6 <- ggplot(panel, aes(x=log(GDPPerCapita))) + geom_histogram() + labs(y = "")
 
 p5 + p6
 
+ggsave("log_gdp_per_capita.png")
+
+
 p7 <- ggplot(panel, aes(x=Population)) + geom_histogram() + labs(y = "Count", title = "Population Distributions")
 p8 <- ggplot(panel, aes(x=log(Population))) + geom_histogram() + labs(y = "")
 
 p7 + p8
+
+ggsave("log_population.png")
+
 
 p9 <- ggplot(panel, aes(x=Weighted_GHI)) + geom_histogram() + labs(y = "Count", title = "Global Horizontal Irradiance Distributions")
 p10 <- ggplot(panel, aes(x=log(Weighted_GHI+0.90731127))) + geom_histogram() + labs(y = "")
@@ -102,6 +112,11 @@ p17 + p18
 
 p19 <- ggplot(panel, aes(x=Ideology)) + geom_histogram() + labs(y = "Count", title = "Ideology Distributions")
 p20 <- ggplot(panel, aes(x=log(Ideology+2.3760))) + geom_histogram() + labs(y = "")
+
+p19 + p20
+
+p19 <- ggplot(panel, aes(x=Score)) + geom_histogram() + labs(y = "Count", title = "Score Distributions")
+p20 <- ggplot(panel, aes(x=log(Score+1))) + geom_histogram() + labs(y = "")
 
 p19 + p20
 ```

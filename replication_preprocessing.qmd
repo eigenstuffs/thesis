@@ -212,6 +212,7 @@ Loading spatial data
 ```{r}
 pv <- read.csv("data/pv_reference_2020.csv")
 wind <- read.csv("data/Reference_Access_Siting_Regime_ATB_Mid_Turbine.csv")
+p
 ```
 
 Convert to SimpleFeatures, join by state
@@ -234,15 +235,15 @@ wind_with_states <- wind_with_states %>% select(NAME, capacity_factor, capacity_
 Get average irradiance/speed of each state (constant)
 
 ```{r}
-pv_with_states$weighted_GHI <- pv_with_states$global_horizontal_irradiance / pv_with_states$area_sq_km
-wind_with_states$weighted_Speed120m <- wind_with_states$wind_speed_120meters / wind_with_states$area_sq_km
+pv_with_states$GHI <- pv_with_states$global_horizontal_irradiance
+wind_with_states$Speed120m <- wind_with_states$wind_speed_120meters
 
 pv_with_states <- pv_with_states %>% group_by(NAME) %>%
-                  summarise(weighted_GHI = mean(weighted_GHI, na.rm = TRUE),
+                  summarise(GHI = mean(GHI, na.rm = TRUE),
                             )
 
 wind_with_states <- wind_with_states %>% group_by(NAME) %>%
-                  summarise(weighted_Speed120m = mean(weighted_Speed120m, na.rm = TRUE),
+                  summarise(Speed120m = mean(Speed120m, na.rm = TRUE),
                             )
 
 pv_with_states$NAME <- gsub(" ", "", pv_with_states$NAME)
@@ -251,8 +252,8 @@ wind_with_states$NAME <- gsub(" ", "", wind_with_states$NAME)
 pv_with_states$NAME <- sapply(pv_with_states$NAME, convert_state_name)
 wind_with_states$NAME <- sapply(wind_with_states$NAME, convert_state_name)
 
-colnames(pv_with_states) <- c("State", "Weighted_GHI", "geometry")
-colnames(wind_with_states) <- c("State", "Weighted_Speed120m", "geometry")
+colnames(pv_with_states) <- c("State", "GHI", "geometry")
+colnames(wind_with_states) <- c("State", "Speed120m", "geometry")
 
 p <- left_join(p, na.omit(as.data.frame(pv_with_states)) %>% select(-geometry), by = join_by(State))
 p <- left_join(p, na.omit(as.data.frame(wind_with_states)) %>% select(-geometry), by = join_by(State))

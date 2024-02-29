@@ -90,7 +90,7 @@ m2_no_outliers
 m3 <- feols(
   data = panel,
   fml = log(CarbonIntensity) ~ Ideology + log(GDPPerCapita) + log(Population) +
-    Weighted_GHI + Weighted_Speed120m + PercentUrban + PropManuEmployment + 
+    GHI + Speed120m + PercentUrban + PropManuEmployment + 
     PropFarmEmployment,
   panel.id = ~ State + Year,
   vcov = "driscoll_kraay"
@@ -99,7 +99,7 @@ m3 <- feols(
 m4 <- feols(
   data = panel,
   fml = log(EnergyIntensity) ~ Ideology + log(GDPPerCapita) + log(Population) +
-    Weighted_GHI + Weighted_Speed120m + PercentUrban + PropManuEmployment + 
+    GHI + Speed120m + PercentUrban + PropManuEmployment + 
     PropFarmEmployment,
   panel.id = ~ State + Year,
   vcov = "driscoll_kraay"
@@ -122,7 +122,7 @@ data_reduced_m4 <- panel[-observations_to_exclude_m4, ]
 m3_no_outliers <- feols(
   data = data_reduced_m3,
   fml = log(CarbonIntensity) ~ Ideology + log(GDPPerCapita) + log(Population) +
-    Weighted_GHI + Weighted_Speed120m + PercentUrban + PropManuEmployment + 
+    GHI + Speed120m + PercentUrban + PropManuEmployment + 
     PropFarmEmployment,
   panel.id = ~ State + Year,
   vcov = "driscoll_kraay"
@@ -131,7 +131,7 @@ m3_no_outliers <- feols(
 m4_no_outliers <- feols(
   data = data_reduced_m4,
   fml = log(EnergyIntensity) ~ Ideology + log(GDPPerCapita) + log(Population) +
-    Weighted_GHI + Weighted_Speed120m + PercentUrban + PropManuEmployment + 
+    GHI + Speed120m + PercentUrban + PropManuEmployment + 
     PropFarmEmployment,
   panel.id = ~ State + Year,
   vcov = "driscoll_kraay"
@@ -477,6 +477,7 @@ wald_tests_iid <- cbind(walds, wald_tests_iid)
 xtable(wald_tests_iid, label = NULL)
 
 view(wald_tests_iid)
+
 ```
 
 **Data Visualizations**
@@ -497,6 +498,8 @@ plot_data <- panel %>% group_by(Year) %>%
   )
 
 ggplot(plot_data) + geom_line(aes(x = Year, y = AvgIdeology)) + labs(title = "Average State Legislature Ideology 1998-2020", x = "Year", y = "Ideology (left-right)") + theme_pubr()
+
+ggsave("ideology_over_time.png")
 
 ggplot(plot_data) + geom_line(aes(x = Year, y = AvgCarbonIntensity)) + labs(title = "Average Carbon Intensity 1998-2020", x = "Year") + theme_pubr()
 
