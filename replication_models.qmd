@@ -394,15 +394,15 @@ hist3 <- gghistogram(permutation_coefficients, x = "PolicyScore", fill = "Policy
         axis.ticks.y=element_blank()) + scale_x_continuous(breaks = seq(from = -4, to = 1, by = 1))
 
 hist4 <- gghistogram(permutation_coefficients, x = "CIScore", fill = "CIScore_Bool", color = "NA", bins = 20, label.y = F) + geom_vline(aes(xintercept = coef_carbon_policy), linetype = "dashed") + labs(title = "Carbon Policy", x = "", y = "", subtitle = paste("p =", carbon_score_p), 'fill' = "Above baseline?") + theme_replace(axis.text.y=element_blank(),
-        axis.ticks.y=element_blank()) + scale_x_continuous(breaks = seq(from = -2.5, to = 1.5, by = .5))
+        axis.ticks.y=element_blank()) + scale_x_continuous(breaks = seq(from = -2.4, to = 1, by = .6))
 
 hist5 <- gghistogram(permutation_coefficients, x = "EIScore", fill = "EIScore_Bool", color = "NA", bins = 20) + geom_vline(aes(xintercept = coef_energy_policy), linetype = "dashed") + labs(title = "Energy Policy", x = "", y = "", subtitle = paste("p =", energy_score_p), 'fill' = "Above baseline?") + theme_replace(axis.text.y=element_blank(),
-        axis.ticks.y=element_blank()) + scale_x_continuous(breaks = seq(from = -1.5, to = 1.5, by = .5))
+        axis.ticks.y=element_blank()) + scale_x_continuous(breaks = seq(from = -1.2, to = 1.2, by = 0.6))
 
-multi.page <- ggarrange(ggarrange(hist0, legend = FALSE, ncol = 1),
+multi.page <- ggarrange(ggarrange(hist0, legend = TRUE, ncol = 1),
           ggarrange(hist1, hist2, legend = FALSE, ncol = 2), nrow = 2, common.legend = TRUE)
 
-multi.page.2 <- ggarrange(ggarrange(hist3, legend = FALSE, ncol = 1),
+multi.page.2 <- ggarrange(ggarrange(hist3, legend = TRUE, ncol = 1),
           ggarrange(hist4, hist5, legend = FALSE, ncol = 2), nrow = 2, common.legend = TRUE)
 
 ggexport(multi.page, filename = "multi.page.pdf")
@@ -410,10 +410,11 @@ ggexport(multi.page.2, filename = "multi.page.2.pdf")
 ```
 
 ```{r}
-etable(m1, m1_no_outliers, tex = TRUE)
-etable(m2, m2_no_outliers, tex = TRUE)
-etable(m3, m3_no_outliers, tex = TRUE)
-etable(m4, m4_no_outliers, tex = TRUE)
+summary(m3)
+summary(m4)
+
+etable(m1, m1_no_outliers, m2, m2_no_outliers, tex = TRUE, headers = c("w/ Influential", "w/o Influential", "w/ Influential", "w/o Influential"))
+etable(m3, m3_no_outliers, m4, m4_no_outliers, tex = TRUE, headers = c("w/ Influential", "w/o Influential", "w/ Influential", "w/o Influential"))
 
 etable(m1, m1_no_outliers, vcov = "iid", tex = TRUE)
 etable(m2, m2_no_outliers, vcov = "iid", tex = TRUE)
@@ -550,4 +551,81 @@ fixed_policy_e <- fixef(baseline_energy_policy)
 plot(fixed_policy)
 plot(fixed_policy_c)
 plot(fixed_policy_e)
+```
+
+```{r}
+m5 <- feols(
+  data = panel,
+  fml = Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
+  panel.id = ~ State + Year,
+  vcov = "driscoll_kraay"
+)
+
+m6 <- feols(
+  data = panel,
+  fml = CI_Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
+  panel.id = ~ State + Year,
+  vcov = "driscoll_kraay"
+)
+
+m7 <- feols(
+  data = panel,
+  fml = EE_Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
+  panel.id = ~ State + Year,
+  vcov = "driscoll_kraay"
+)
+
+residuals_m5 <- resid(m5)
+
+residual_threshold_m5 <- mean(residuals_m5) + 2*sd(residuals_m5)
+observations_to_exclude_m5 <- which(abs(residuals_m5) > residual_threshold_m5)
+
+data_reduced_m5 <- panel[-observations_to_exclude_m5, ]
+
+residuals_m6 <- resid(m6)
+
+residual_threshold_m6 <- mean(residuals_m6) + 2*sd(residuals_m6)
+observations_to_exclude_m6 <- which(abs(residuals_m6) > residual_threshold_m6)
+
+data_reduced_m6 <- panel[-observations_to_exclude_m6, ]
+
+residuals_m7 <- resid(m7)
+
+residual_threshold_m7 <- mean(residuals_m7) + 2*sd(residuals_m7)
+observations_to_exclude_m7 <- which(abs(residuals_m7) > residual_threshold_m7)
+
+data_reduced_m7 <- panel[-observations_to_exclude_m7, ]
+
+m5_no_outliers <- feols(
+  data = data_reduced_m5,
+  fml = Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
+  panel.id = ~ State + Year,
+  vcov = "driscoll_kraay"
+)
+
+m6_no_outliers <- feols(
+  data = data_reduced_m6,
+  fml = CI_Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
+  panel.id = ~ State + Year,
+  vcov = "driscoll_kraay"
+)
+
+m7_no_outliers <- feols(
+  data = data_reduced_m7,
+  fml = EE_Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
+  panel.id = ~ State + Year,
+  vcov = "driscoll_kraay"
+)
+
+m5
+m6
+m7
+m5_no_outliers
+m6_no_outliers
+m7_no_outliers
+```
+
+```{r}
+etable(m5, m5_no_outliers, tex = TRUE, headers = c("w/ Influential", "w/o Influential"))
+etable(m6, m6_no_outliers, m7, m7_no_outliers, tex = TRUE, headers = c("w/ Influential", "w/o Influential", "w/ Influential", "w/o Influential"))
 ```
