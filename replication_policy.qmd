@@ -17,6 +17,7 @@ library(nnet)
 library(plm)
 library(reshape2)
 library(ggpubr)
+library(fixest)
 set.seed(07151129)
 ```
 
@@ -54,23 +55,27 @@ colnames(policies_temp) <-
                             "w4_gas_decoupling_21" = "GasDecoupling",
                          "w_gg_rr_21" = "PowerPlantsReport",
                          "environment_ca_car_emissions_standards_21" = "CACarStandards",
-                         "environment_preemption_naturalgasbans" = "ProhibitGasHookupBans",
+                         "environment_preemption_naturalgasbans" = "BanGasHookupBans",
                          "w4_environment_state_rps_21" = "RPS",
                          "w_ghg_targets_21" = "GHGTargets",
                          "community_solar" = "CommunitySolar",
                          "environment_ghg_cap_21" = "UtilitiesGHGCap",
                          "environment_publicbenefit_funds_21" = "PublicBenefitFunds",
                          "fgd_21" = "FuelSourceDisclosure",
-                         "ghg_standards_21" = "PerformanceStandards",
+                         "ghg_standards_21" = "PerformanceStds",
                          "w_complete_streets_21" = "CompleteStreets",
                          "w_environment_state_nepas_21" = "StateNEPA",
                          "w_mgpo_21" = "RenewablesOffered")
 
-carbon_intensity_policies <- c("CACarStandards", "CommunitySolar", "FuelSourceDisclosure", "NetMeter","RenewablesOffered", "RPS", "PowerPlantsReport", "ResSolarTaxCredit", "UtilitiesGHGCap", "GHGTargets")
+carbon_intensity_policies <- c("CommunitySolar", "FuelSourceDisclosure", "NetMeter","RenewablesOffered", "RPS", "PowerPlantsReport", "ResSolarTaxCredit", "UtilitiesGHGCap", "GHGTargets", "BanGasHookupBans", "PerformanceStds")
 
-energy_intensity_policies <- c("ProhibitGasHookupBans", "PublicBuildingStandards", "CompleteStreets", "EfficiencyTargets", "LowIncomeEff", "ElectricDecoupling", "GasDecoupling", "PerformanceStandards")
+energy_intensity_policies <- c("PublicBuildingStandards", "CompleteStreets", "EfficiencyTargets", "LowIncomeEff", "ElectricDecoupling", "GasDecoupling")
 
-other_policies <- c("ClimateActionPlan", "PublicBenefitFunds", "PACE", "StateNEPA")
+other_policies <- c("ClimateActionPlan", "PublicBenefitFunds", "PACE", "StateNEPA", "CACarStandards", "GHGTargets")
+
+dg_policies <- c("ResSolarTaxCredit", "NetMeter", "CommunitySolar")
+
+names(policies_temp) %in% c(carbon_intensity_policies, energy_intensity_policies, other_policies)
 
 count <- policies_temp %>%
   mutate(sum = rowSums(across(c(-State, -Year)), na.rm = TRUE))
@@ -84,32 +89,37 @@ count <- merge(count, panel, c("State", "Year"))
 ## carbon intensity
 
 CI_pol <- policies_temp %>% select(State, Year, all_of(carbon_intensity_policies)) %>%
-  mutate(sum = rowSums(across(c(-State, -Year)), na.rm = TRUE))
+  mutate(CI_Score = rowSums(across(c(-State, -Year)), na.rm = TRUE))
 
-CI_pol <- CI_pol %>% select(State, Year, sum)
-colnames(CI_pol)[3] <- "CI_Score"
+CI_pol <- CI_pol %>% select(State, Year, CI_Score)
 
 ## energy intensity
 
 EI_pol <- policies_temp %>% select(State, Year, all_of(energy_intensity_policies)) %>%
-  mutate(sum = rowSums(across(c(-State, -Year)), na.rm = TRUE))
+  mutate(EE_Score = rowSums(across(c(-State, -Year)), na.rm = TRUE))
 
-EI_pol <- EI_pol %>% select(State, Year, sum)
-colnames(EI_pol)[3] <- "EE_Score"
+EI_pol <- EI_pol %>% select(State, Year, EE_Score)
 
-###
+### other policies
 
 other_pol <- policies_temp %>% select(State, Year, all_of(other_policies)) %>%
-  mutate(sum = rowSums(across(c(-State, -Year)), na.rm = TRUE))
+  mutate(Other_Score = rowSums(across(c(-State, -Year)), na.rm = TRUE))
 
-other_pol <- other_pol %>% select(State, Year, sum)
-colnames(other_pol)[3] <- "Other_Score"
+other_pol <- other_pol %>% select(State, Year, Other_Score)
+
+### dg policies
+
+dg_pol <- policies_temp %>% select(State, Year, all_of(dg_policies)) %>%
+  mutate(DG_Score = rowSums(across(c(-State, -Year)), na.rm = TRUE))
+
+dg_pol <- dg_pol %>% select(State, Year, DG_Score)
 
 ###
 
 count <- merge(count, CI_pol, by = c("State", "Year"))
 count <- merge(count, EI_pol, by = c("State", "Year"))
 count <- merge(count, other_pol, by = c("State", "Year"))
+count <- merge(count, dg_pol, by = c("State", "Year"))
 
 ###
 
@@ -143,7 +153,7 @@ for (col in names(policies_subset %>% dplyr::select(-year, -abb))) {
 ```
 
 ```{r}
-policies_dupe <- policies
+policies_dupe <- policies_temp
 
 policies_dupe <- policies_dupe %>% arrange(State, Year)
 
@@ -165,42 +175,47 @@ policies_dupe <- left_join(panel %>% dplyr::select(State, Year, Ideology), polic
 
 policies_dupe <- policies_dupe %>% select(-ends_with("_NA"))
 
-unique(policies_dupe$State)
-policies_dupe[,7:42] <- lapply(policies_dupe[,7:42], as.factor)
-
 df <- data.frame(
-  policy = "",
-  estimate = "",
-  p = ""
+  policy = rep("", 36),
+  pseudor2 = rep(0, 36),
+  odds_ratio = rep(0,36)
 )
 
-for (col in names(policies_dupe %>% dplyr::select(-State, -Year, -Ideology))) {
-  if (is.factor(get(col, policies_dupe))) {
-    formula <- as.formula(paste(as.factor(col), "~ Ideology + factor(Year) + factor(State)"))
-    model <- suppressWarnings(glm(formula, data = policies_dupe, family = "binomial"))
-    if (summary(model)$coefficients['Ideology', 'Pr(>|z|)'] <= 0.1) {
-      print("SIGNIFICANT:")
-      print(formula)
-      print(exp(summary(model)$coefficients['Ideology', 'Estimate']))
-      print(summary(model)$coefficients['Ideology', 'Pr(>|z|)'])
-      
-      df <- rbind(df, c(col, exp(summary(model)$coefficients['Ideology', 'Estimate']),
-                  summary(model)$coefficients['Ideology', 'Pr(>|z|)']))
-    } else {
-      #print("NOT SIGNIFICANT:")
-      #print(formula)
-      #print(summary(model)$coefficients['Ideology', 'Pr(>|z|)'])
-    } 
-  }
-  df$estimate <- as.numeric(df$estimate)
-  df$p <- as.numeric(df$p)
+str(df)
+
+for (i in 4:length(names(policies_dupe))) {
+  lhs <- names(policies_dupe)[i]
+  model <- feglm(as.formula(paste(lhs, "~ Ideology")),
+              panel.id = ~ State + Year,
+              family = "binomial",
+              vcov = "driscoll_kraay",
+              data = policies_dupe)
+  df$policy[i-3] <- lhs
+  df$pseudor2[i-3] <- as.numeric(unlist(fitstat(model, ~ pr2)))
+  df$odds_ratio[i-3] <- exp(coef(model)[2])
 }
 
-summary(model)
+ggplot(df, aes(x = reorder(policy, pseudor2), y = pseudor2)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  xlab("Policy") + 
+  ylab("Pseudo R²") +
+  ggtitle("Predictive Power of Ideology by Policy") + theme_pubr() +
+  theme(axis.text.y = element_text(size = 8))
 
-formula
+df$positive <- ifelse(df$odds_ratio > 1, "yes", "no")
 
-#ggplot(data = df) + geom_col(aes(x= policy, y=estimate)) + theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+ggplot(df, aes(x = reorder(policy, odds_ratio), y = odds_ratio, fill = positive)) +
+  geom_bar(stat = "identity") +
+  coord_flip() + geom_hline(aes(yintercept = 1), linetype = "dashed") +
+  labs(x = "", y = "Odds Ratio", fill = "More likely when ideology shifts right?",
+       caption = "* Dashed line represents odds ratio at 0, when ideology has no effect")
+  ggtitle("Predictive Power of Ideology by Policy") + theme_pubr() +
+  theme(axis.text.y = element_text(size = 8))
+  
+ggsave("exploratory/policy_odds.png")
+
+xtable(df)
 ```
 
 ```{r}
@@ -213,6 +228,12 @@ policies_melt <- policies_melt %>%
 policies_melt <- policies_melt %>%
   mutate(variable = factor(variable, levels = variable[order(sum_value)]))
 
-ggplot(policies_melt) + geom_bar(aes(x = variable, sum_value), stat = "identity") + theme_pubr() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + labs(x = "Policy", y = "Count", title = "Policy Counts")
+ggplot(policies_melt) + geom_bar(aes(x = variable, sum_value), stat = "identity") +
+  labs(x = "", y = "Frequency") + coord_flip() + theme_pubr()
+
+ggsave("exploratory/policy_count.png", height = 5)
+```
+
+```{r}
+
 ```

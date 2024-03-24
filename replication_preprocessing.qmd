@@ -18,6 +18,7 @@ library(reshape)
 library(sf)
 library(tigris)
 library(zoo)
+library(plm)
 set.seed(07151129)
 ```
 
@@ -156,20 +157,35 @@ p <- Reduce(function(x, y) merge(x, y, by=c("State", "Year"), all = TRUE), list)
 p <- p %>% filter(State != "DC")
 ```
 
-Getting average chamber ideology
+Getting average chamber ideology\
 
 ```{r}
-ideology <- as.data.frame(cbind(ideology$st, ideology$year, ideology$hou_chamber, ideology$sen_chamber))
-colnames(ideology) <- c("State","Year","House","Senate")
+ideology <- data.frame(
+  State = ideology$st,
+  Year = ideology$year,
+  House = ideology$hou_chamber,
+  Senate = ideology$sen_chamber
+)
 ideology$House <- as.numeric(ideology$House)
 ideology$Senate <- as.numeric(ideology$Senate)
-ideology$Ideology <- ideology$Senate # All states have a Senate
+ideology$Ideology <- as.numeric(ideology$Senate)
 
 for (i in 1:nrow(ideology)) {
   if (!is.na(ideology[i,3]) && !is.na(ideology[i,4])) {
-    ideology[i,5] <- (ideology[i,3] + ideology[i,4])/2 # Average if we have both chambers
+    ideology[i,5] <- as.numeric((ideology[i,3] + ideology[i,4])/2) # Average if we have both chambers
   }
 }
+
+ideology <- ideology %>% 
+  group_by(State) %>% 
+  mutate(
+    IdeologyLag1 = dplyr::lag(Ideology, 1),
+    IdeologyLag2 = dplyr::lag(Ideology, 2),
+    IdeologyLag3 = dplyr::lag(Ideology, 3),
+    IdeologyLag4 = dplyr::lag(Ideology, 4),
+    IdeologyLag5 = dplyr::lag(Ideology, 5)
+  ) %>% 
+  ungroup()
 
 ideology <- ideology[ideology$Year >= 1998 & ideology$Year <= 2020,]
 
@@ -212,7 +228,6 @@ Loading spatial data
 ```{r}
 pv <- read.csv("data/pv_reference_2020.csv")
 wind <- read.csv("data/Reference_Access_Siting_Regime_ATB_Mid_Turbine.csv")
-p
 ```
 
 Convert to SimpleFeatures, join by state
