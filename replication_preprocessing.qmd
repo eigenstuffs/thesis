@@ -11,6 +11,7 @@ editor: visual
 Loading libraries
 
 ```{r}
+rm(list = ls())
 options(scipen=999)
 library(tidyverse)
 library(haven)
@@ -277,5 +278,5 @@ p <- left_join(p, na.omit(as.data.frame(wind_with_states)) %>% select(-geometry)
 Export panel data as csv
 
 ```{r}
-write.csv(p, "panel_data_FEB20.csv", row.names = FALSE)
+write.csv(p, "panel.csv", row.names = FALSE)
 ```

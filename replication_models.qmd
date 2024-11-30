@@ -22,1369 +22,285 @@ library(sandwich)
 library(multiwayvcov)
 library(plm)
 library(ggrepel)
+library(reshape2)
 
 set.seed(07151129)
 theme_set(theme_pubr())
 ```
 
 ```{r}
-panel <- read.csv("panel_with_count_FEB20.csv")
+panel <- read.csv("panel_with_counts.csv")
 permutation_coefficients <- data.frame(Emissions = rep(NA, 1000),
                                        CarbonIntensity = rep(NA, 1000),
                                        EnergyIntensity = rep(NA, 1000),
                                        PolicyScore = rep(NA, 1000),
                                        CIScore = rep(NA, 1000),
                                        EIScore = rep(NA, 1000))
+panel <- panel %>%
+  mutate(
+    log_EmissionsPerCapita = log(EmissionsPerCapita),
+    log_CarbonIntensity = log(CarbonIntensity),
+    log_EnergyIntensity = log(EnergyIntensity),
+    log_GDPPerCapita = log(GDPPerCapita),
+    factor_State = as.factor(State),
+    factor_Year = as.factor(Year)
+  )
 ```
 
 **Fixed Effects Models**
 
 ```{r}
-m1 <- feols(
-  data = panel,
-  fml = log(CarbonIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-  panel.id = ~ State + Year,
-  vcov = "driscoll_kraay"
+independent_vars <- c("Ideology", "IdeologyLag1", "IdeologyLag2")
+
+dependent_vars <- list(
+  m0 = "log_EmissionsPerCapita",
+  m1 = "log_CarbonIntensity",
+  m2 = "log_EnergyIntensity"
 )
 
-m2 <- feols(
-  data = panel,
-  fml = log(EnergyIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-  panel.id = ~ State + Year,
-  vcov = "driscoll_kraay"
-)
-
-residuals_m1 <- resid(m1)
-
-residual_threshold_m1 <- mean(residuals_m1) + 2*sd(residuals_m1)
-observations_to_exclude_m1 <- which(abs(residuals_m1) > residual_threshold_m1)
-
-data_reduced_m1 <- panel[-observations_to_exclude_m1, ]
-
-view(panel[observations_to_exclude_m1,])
-
-residuals_m2 <- resid(m2)
-
-residual_threshold_m2 <- mean(residuals_m2) + 2*sd(residuals_m2)
-observations_to_exclude_m2 <- which(abs(residuals_m2) > residual_threshold_m2)
-
-data_reduced_m2 <- panel[-observations_to_exclude_m2, ]
-
-view(panel[observations_to_exclude_m2, ])
-
-m1_no_outliers <- feols(
-  data = data_reduced_m1,
-  fml = log(CarbonIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-  panel.id = ~ State + Year,
-  vcov = "driscoll_kraay"
-)
-
-m2_no_outliers <- feols(
-  data = data_reduced_m2,
-  fml = log(EnergyIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-  panel.id = ~ State + Year,
-  vcov = "driscoll_kraay"
-)
-
-m1
-m2
-m1_no_outliers
-m2_no_outliers
-```
-
-**Multiple Linear Regression Models**
-
-```{r}
-m3 <- feols(
-  data = panel,
-  fml = log(CarbonIntensity) ~ Ideology + log(GDPPerCapita) + log(Population) +
-    GHI + Speed120m + PercentUrban + PropManuEmployment + 
-    PropFarmEmployment,
-  panel.id = ~ State + Year,
-  vcov = "driscoll_kraay"
-)
-
-m4 <- feols(
-  data = panel,
-  fml = log(EnergyIntensity) ~ Ideology + log(GDPPerCapita) + log(Population) +
-    GHI + Speed120m + PercentUrban + PropManuEmployment + 
-    PropFarmEmployment,
-  panel.id = ~ State + Year,
-  vcov = "driscoll_kraay"
-)
-
-residuals_m3 <- resid(m3)
-
-residual_threshold_m3 <- mean(residuals_m3) + 2*sd(residuals_m3)
-observations_to_exclude_m3 <- which(abs(residuals_m3) > residual_threshold_m3)
-
-data_reduced_m3 <- panel[-observations_to_exclude_m3, ]
-
-residuals_m4 <- resid(m4)
-
-residual_threshold_m4 <- mean(residuals_m4) + 2*sd(residuals_m4)
-observations_to_exclude_m4 <- which(abs(residuals_m4) > residual_threshold_m4)
-
-data_reduced_m4 <- panel[-observations_to_exclude_m4, ]
-
-m3_no_outliers <- feols(
-  data = data_reduced_m3,
-  fml = log(CarbonIntensity) ~ Ideology + log(GDPPerCapita) + log(Population) +
-    GHI + Speed120m + PercentUrban + PropManuEmployment + 
-    PropFarmEmployment,
-  panel.id = ~ State + Year,
-  vcov = "driscoll_kraay"
-)
-
-m4_no_outliers <- feols(
-  data = data_reduced_m4,
-  fml = log(EnergyIntensity) ~ Ideology + log(GDPPerCapita) + log(Population) +
-    GHI + Speed120m + PercentUrban + PropManuEmployment + 
-    PropFarmEmployment,
-  panel.id = ~ State + Year,
-  vcov = "driscoll_kraay"
-)
-
-m3
-m4
-m3_no_outliers
-m4_no_outliers
-```
-
-**Permutation Inference - Emissions**
-
-```{r}
-baseline_emissions <- feols(
-    data = panel,
-    fml = log(EmissionsPerCapita) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
-
-coef_emissions <- coef(baseline_emissions)["Ideology"]
-
-for(i in 1:1000) {
-  shuffled_data <- panel %>%
-    group_by(State) %>%
-    mutate(
-      order = row_number(),
-      shift = sample(1:n(), 1),
-      Ideology = Ideology[(order - shift) %% n() + 1]
-    ) %>%
-    ungroup()
-  
-  model <- feols(
-    data = shuffled_data,
-    fml = log(EmissionsPerCapita) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
-  
-  permutation_coefficients$Emissions[i] <- coef(model)["Ideology"]
-}
-```
-
-**Permutation Inference -- Carbon Intensity**
-
-```{r}
-baseline_carbon <- feols(
-    data = panel,
-    fml = log(CarbonIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
-
-coef_carbon <- coef(baseline_carbon)["Ideology"]
-
-for(i in 1:1000) {
-  shuffled_data <- panel %>%
-    group_by(State) %>%
-    mutate(
-      order = row_number(),
-      shift = sample(1:n(), 1),
-      Ideology = Ideology[(order - shift) %% n() + 1]
-    ) %>%
-    ungroup()
-  
-  model <- feols(
-    data = shuffled_data,
-    fml = log(CarbonIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
-  
-  permutation_coefficients$CarbonIntensity[i] <- coef(model)["Ideology"]
-}
-```
-
-**Permutation Inference -- Energy Intensity**
-
-```{r}
-baseline_energy <- feols(
-    data = panel,
-    fml = log(EnergyIntensity) ~ Ideology + log(Population) + log(GDPPerCapita)| State + Year,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
-
-coef_energy <- coef(baseline_energy)["Ideology"]
-
-for(i in 1:1000) {
-  shuffled_data <- panel %>%
-    group_by(State) %>%
-    mutate(
-      order = row_number(),
-      shift = sample(1:n(), 1),
-      Ideology = Ideology[(order - shift) %% n() + 1]
-    ) %>%
-    ungroup()
-  
-  model <- feols(
-    data = shuffled_data,
-    fml = log(EnergyIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
-  
-  permutation_coefficients$EnergyIntensity[i] <- coef(model)["Ideology"]
-}
-```
-
-**Permutation Inference -- All Policies**
-
-```{r}
-baseline_policies <- feols(
-    data = panel,
-    fml = Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
-
-coef_policies <- coef(baseline_policies)["Ideology"]
-
-for(i in 1:1000) {
-  shuffled_data <- panel %>%
-    group_by(State) %>%
-    mutate(
-      order = row_number(),
-      shift = sample(1:n(), 1),
-      Ideology = Ideology[(order - shift) %% n() + 1]
-    ) %>%
-    ungroup()
-  
-  model <- feols(
-    data = shuffled_data,
-    fml = Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
-  
-  permutation_coefficients$PolicyScore[i] <- coef(model)["Ideology"]
-}
-```
-
-**Permutation Inference -- Carbon Efficiency Policy**
-
-```{r}
-baseline_carbon_policy <- feols(
-    data = panel,
-    fml = CI_Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
-
-coef_carbon_policy <- coef(baseline_carbon_policy)["Ideology"]
-
-for(i in 1:1000) {
-  shuffled_data <- panel %>%
-    group_by(State) %>%
-    mutate(
-      order = row_number(),
-      shift = sample(1:n(), 1),
-      Ideology = Ideology[(order - shift) %% n() + 1]
-    ) %>%
-    ungroup()
-  
-  model <- feols(
-    data = shuffled_data,
-    fml = CI_Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
-  
-  permutation_coefficients$CIScore[i] <- coef(model)["Ideology"]
-}
-```
-
-**Permutation Inference -- Energy Efficiency Policy**
-
-```{r}
-baseline_energy_policy <- feols(
-    data = panel,
-    fml = EE_Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
-
-coef_energy_policy <- coef(baseline_energy_policy)["Ideology"]
-
-for(i in 1:1000) {
-  shuffled_data <- panel %>%
-    group_by(State) %>%
-    mutate(
-      order = row_number(),
-      shift = sample(1:n(), 1),
-      Ideology = Ideology[(order - shift) %% n() + 1]
-    ) %>%
-    ungroup()
-  
-  model <- feols(
-    data = shuffled_data,
-    fml = EE_Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
-  
-  permutation_coefficients$EIScore[i] <- coef(model)["Ideology"]
-}
-```
-
-**Permutation Inference Visualizations**
-
-```{r}
-permutation_coefficients$Emissions_Bool <- ifelse(
-  permutation_coefficients$Emissions >= coef_emissions,
-  TRUE, FALSE
-)
-
-permutation_coefficients$CarbonIntensity_Bool <- ifelse(
-  permutation_coefficients$CarbonIntensity >= coef_carbon,
-  TRUE, FALSE
-)
-
-permutation_coefficients$EnergyIntensity_Bool <- ifelse(
-  permutation_coefficients$EnergyIntensity >= coef_energy,
-  TRUE, FALSE
-)
-
-permutation_coefficients$PolicyScore_Bool <- ifelse(
-  permutation_coefficients$PolicyScore >= coef_policies,
-  TRUE, FALSE
-)
-
-permutation_coefficients$CIScore_Bool <- ifelse(
-  permutation_coefficients$CIScore >= coef_carbon_policy,
-  TRUE, FALSE
-)
-
-permutation_coefficients$EIScore_Bool <- ifelse(
-  permutation_coefficients$EIScore >= coef_energy_policy,
-  TRUE, FALSE
-)
-
-emissions_p <- mean(abs(permutation_coefficients$Emissions) >= abs(coef_emissions))
-carbon_p <- mean(abs(permutation_coefficients$CarbonIntensity) >= abs(coef_carbon))
-energy_p <- mean(abs(permutation_coefficients$EnergyIntensity) >= abs(coef_energy))
-score_p <- mean(abs(permutation_coefficients$PolicyScore) >= abs(coef_policies))
-carbon_score_p <- mean(abs(permutation_coefficients$CIScore) >= abs(coef_carbon_policy))
-energy_score_p <- mean(abs(permutation_coefficients$EIScore) >= abs(coef_energy_policy))
-
-hist0 <- gghistogram(permutation_coefficients, x = "Emissions", fill = "Emissions_Bool", color = "NA", bins = 20) +  geom_vline(aes(xintercept = coef_emissions), linetype = "dashed") + labs(title = "Per Capita Emissions", x = "", y = "", subtitle = paste("p =", emissions_p), 'fill' = "Above baseline?") + theme_replace(axis.text.y=element_blank(),
-        axis.ticks.y=element_blank()) + scale_x_continuous(breaks = seq(from = -.04, to = .04, by = .02))
-
-hist1 <- gghistogram(permutation_coefficients, x = "CarbonIntensity", fill = "CarbonIntensity_Bool", color = "NA", bins = 20) +  geom_vline(aes(xintercept = coef_carbon), linetype = "dashed") + labs(title = "Carbon Intensity", x = "", y = "", subtitle = paste("p =", carbon_p), 'fill' = "Above baseline?") + theme_replace(axis.text.y=element_blank(),
-        axis.ticks.y=element_blank()) + scale_x_continuous(breaks = seq(from = -.02, to = .02, by = .02))
-
-hist2 <- gghistogram(permutation_coefficients, x = "EnergyIntensity", fill = "EnergyIntensity_Bool", color = "NA", bins = 20) + geom_vline(aes(xintercept = coef_energy), linetype = "dashed") + labs(title = "Energy Intensity", x = "", y = "", subtitle = paste("p =", energy_p), 'fill' = "Above baseline?") + theme_replace(axis.text.y=element_blank(),
-        axis.ticks.y=element_blank()) + scale_x_continuous(breaks = seq(from = -.02, to = .02, by = .02))
-
-hist3 <- gghistogram(permutation_coefficients, x = "PolicyScore", fill = "PolicyScore_Bool", color = "NA", bins = 20) + geom_vline(aes(xintercept = coef_policies), linetype = "dashed") + labs(title = "Climate Policy", x = "", y = "", subtitle = paste("p =", score_p), 'fill' = "Above baseline?") + theme_replace(axis.text.y=element_blank(),
-        axis.ticks.y=element_blank()) + scale_x_continuous(breaks = seq(from = -4, to = 1, by = 1))
-
-hist4 <- gghistogram(permutation_coefficients, x = "CIScore", fill = "CIScore_Bool", color = "NA", bins = 20, label.y = F) + geom_vline(aes(xintercept = coef_carbon_policy), linetype = "dashed") + labs(title = "Carbon Policy", x = "", y = "", subtitle = paste("p =", carbon_score_p), 'fill' = "Above baseline?") + theme_replace(axis.text.y=element_blank(),
-        axis.ticks.y=element_blank()) + scale_x_continuous(breaks = seq(from = -2.4, to = 1, by = .6))
-
-hist5 <- gghistogram(permutation_coefficients, x = "EIScore", fill = "EIScore_Bool", color = "NA", bins = 20) + geom_vline(aes(xintercept = coef_energy_policy), linetype = "dashed") + labs(title = "Energy Policy", x = "", y = "", subtitle = paste("p =", energy_score_p), 'fill' = "Above baseline?") + theme_replace(axis.text.y=element_blank(),
-        axis.ticks.y=element_blank()) + scale_x_continuous(breaks = seq(from = -1.2, to = 1.2, by = 0.6))
-
-multi.page <- ggarrange(ggarrange(hist0, legend = TRUE, ncol = 1),
-          ggarrange(hist1, hist2, legend = FALSE, ncol = 2), nrow = 2, common.legend = TRUE)
-
-multi.page.2 <- ggarrange(ggarrange(hist3, legend = TRUE, ncol = 1),
-          ggarrange(hist4, hist5, legend = FALSE, ncol = 2), nrow = 2, common.legend = TRUE)
-
-ggexport(multi.page, filename = "multi.page.pdf")
-ggexport(multi.page.2, filename = "multi.page.2.pdf")
-```
-
-```{r}
-summary(m3)
-summary(m4)
-
-etable(m1,m2, tex = TRUE)
-etable(m3,m4, tex = TRUE)
-
-summary(m1)
-summary(m2)
-
-summary(m3)
-summary(m4)
-
-etable(baseline_carbon_policy, baseline_energy_policy, tex = TRUE)
-
-etable(m1, m1_no_outliers, tex = TRUE, headers = c("Outliers", "No Outliers"))
-etable(m2, m2_no_outliers, tex = TRUE, headers = c("Outliers", "No Outliers"))
-etable(m3, m3_no_outliers, tex = TRUE, headers = c("Outliers", "No Outliers"))
-etable(m4, m4_no_outliers, tex = TRUE, headers = c("Outliers", "No Outliers"))
-
-fe_state <- 
-```
-
-**BP Tests**
-
-```{r}
-bptest(lm(log(EmissionsPerCapita) ~ Ideology + log(Population) + log(GDPPerCapita) + factor(State) + factor(Year), data = panel))
-
-bptest(lm(log(CarbonIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) + factor(State) + factor(Year), data = panel))
-
-bptest(lm(log(EnergyIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) + factor(State) + factor(Year), data = panel))
-
-bptest(lm(Score ~ Ideology + factor(State) + factor(Year), data = panel))
-
-bptest(lm(CI_Score ~ Ideology + factor(State) + factor(Year), data = panel))
-
-bptest(lm(EE_Score ~ Ideology + factor(State) + factor(Year), data = panel))
-```
-
-**Wald Tests**
-
-```{r}
-wald_tests <- data.frame(rbind(wald(m1, print = FALSE, keep = "Ideology"),
-                     wald(m1_no_outliers, print = FALSE, keep = "Ideology"),
-                     wald(m2, print = FALSE, keep = "Ideology"),
-                     wald(m2_no_outliers, print = FALSE, keep = "Ideology"),
-                     wald(m3, keep = "Ideology", print = FALSE),
-                     wald(m4, keep = "Ideology", print = FALSE),
-                     wald(m3_no_outliers, keep = "Ideology", print = FALSE),
-                     wald(m4_no_outliers, keep = "Ideology", print = FALSE)))
-
-wald_tests <- data.frame(lapply(wald_tests, function(x) sapply(x, function(y) unlist(y)[1])))
-
-walds <- c("FE log(CarbonIntensity)", "no outliers", "FE log(EnergyIntensity)", "no outliers", "MLR log(CarbonIntensity)", "no outliers",
-           "MLR log(EnergyIntensity)", "no outliers")
-
-wald_tests <- cbind(walds, wald_tests)
-
-view(wald_tests)
-
-xtable(wald_tests, label = NULL)
-
-wald_tests_iid <- data.frame(rbind(wald(m1, print = FALSE, vcov = "iid"),
-                     wald(m1_no_outliers, print = FALSE, vcov = "iid"),
-                     wald(m2, print = FALSE, vcov = "iid"),
-                     wald(m2_no_outliers, print = FALSE, vcov = "iid"),
-                     wald(m3, keep = "Ideology", print = FALSE, vcov = "iid"),
-                     wald(m4, keep = "Ideology", print = FALSE, vcov = "iid"),
-                     wald(m3_no_outliers, keep = "Ideology", print = FALSE, vcov = "iid"),
-                     wald(m4_no_outliers, keep = "Ideology", print = FALSE, vcov = "iid")))
-
-wald_tests_iid <- data.frame(lapply(wald_tests_iid, function(x) sapply(x, function(y) unlist(y)[1])))
-
-
-wald_tests_iid <- cbind(walds, wald_tests_iid)
-
-xtable(wald_tests_iid, label = NULL)
-
-view(wald_tests_iid)
-
-```
-
-**Data Visualizations**
-
-```{r}
-plot_data <- panel %>% group_by(Year) %>%
-  summarise(AvgIdeology = mean(Ideology, na.rm = TRUE),
-            AvgEmissionsPerCapita = mean(EmissionsPerCapita, na.rm = TRUE),
-            AvgBindingRPS = mean(x_rps_targets_bindingonly, na.rm = TRUE),
-            AvgGasolineTax = mean(z_gasoline_tax, na.rm = TRUE),
-            AvgEfficiencyProcurement = mean(x_eers, na.rm = TRUE),
-            AvgPolicy = mean(Score, na.rm = TRUE),
-            AvgCarbonScore = mean(CI_Score, na.rm = TRUE),
-            AvgEnergyScore = mean(EE_Score, na.rm = TRUE),
-            AvgCarbonIntensity = mean(CarbonIntensity, na.rm = TRUE),
-            AvgEnergyIntensity = mean(EnergyIntensity, na.rm = TRUE),
-            AvgGDPPerCapita = mean(GDPPerCapita, na.rm = TRUE)
-  )
-
-state_data <- panel %>% group_by(State) %>%
-  summarise(AvgIdeology = mean(Ideology, na.rm = TRUE),
-            AvgEmissionsPerCapita = mean(EmissionsPerCapita, na.rm = TRUE),
-            AvgBindingRPS = mean(x_rps_targets_bindingonly, na.rm = TRUE),
-            AvgGasolineTax = mean(z_gasoline_tax, na.rm = TRUE),
-            AvgEfficiencyProcurement = mean(x_eers, na.rm = TRUE),
-            AvgPolicy = mean(Score, na.rm = TRUE),
-            AvgCarbonScore = mean(CI_Score, na.rm = TRUE),
-            AvgEnergyScore = mean(EE_Score, na.rm = TRUE),
-            AvgCarbonIntensity = mean(CarbonIntensity, na.rm = TRUE),
-            AvgEnergyIntensity = mean(EnergyIntensity, na.rm = TRUE),
-            AvgGDPPerCapita = mean(GDPPerCapita, na.rm = TRUE)
-  )
-
-ggplot(plot_data) +
-  geom_jitter(data = panel, aes(x = Year, y = Ideology), alpha = 0.15) +
-  geom_line(aes(x = Year, y = AvgIdeology)) +
-  labs(title = "State Legislature Ideologies 1998-2020", x = "Year", y = "Ideology (left-right)", subtitle = "Black line = average ideology over time") +
-  ylim(min(panel$Ideology, na.rm =TRUE), max(panel$Ideology, na.rm =TRUE)) +
-  theme_pubr()
-
-ggsave("ideology_over_time.png")
-
-ggplot(plot_data) + geom_line(aes(x = Year, y = AvgCarbonIntensity)) + labs(title = "Average Carbon Intensity 1998-2020", x = "Year") + theme_pubr()
-
-ggplot(plot_data) + geom_line(aes(x = Year, y = AvgEnergyIntensity)) + labs(title = "Average Energy Intensity 1998-2020", x = "Year") + theme_pubr()
-
-ggplot(plot_data) + geom_line(aes(x = Year, y = AvgEmissionsPerCapita)) + labs(title = "Average Per Capita Emissions 1998-2020", x = "Year") + theme_pubr()
-
-ggplot(plot_data) + geom_line(aes(x = Year, y = AvgPolicy)) + labs(title = "Average Policy Score 1998-2020", x = "Year") + theme_pubr()
-
-ggplot(plot_data) + geom_line(aes(x = Year, y = AvgCarbonScore)) + labs(title = "Average Carbon Policy Score 1998-2020", x = "Year") + theme_pubr()
-
-ggplot(plot_data) + geom_line(aes(x = Year, y = AvgEnergyScore)) + labs(title = "Average Energy Policy Score 1998-2020", x = "Year") + theme_pubr()
-
-ggplot(plot_data) + geom_line(aes(x = AvgGDPPerCapita, y = AvgCarbonIntensity)) + labs(title = "GDP Per Capita vs. Carbon Intensity") + theme_pubr()
-
-ggplot(plot_data) + geom_line(aes(x = AvgGDPPerCapita, y = AvgEnergyIntensity)) + labs(title = "GDP Per Capita vs. Energy Intensity") + theme_pubr()
-
-ggplot(panel) + geom_point(aes(x = Ideology, y = CI_Score))+ geom_smooth(aes(x = Ideology, y = CI_Score), method = "lm") + labs(title = "Ideology vs. Carbon Score 1998-2020") + theme_pubr()
-
-ggplot(panel) + geom_point(aes(x = Ideology, y = EE_Score)) + geom_smooth(aes(x = Ideology, y = EE_Score), method = "lm") + labs(title = "Ideology vs. Energy Score 1998-2020") + theme_pubr()
-
-ggplot(panel) + geom_point(aes(x = Ideology, y = CarbonIntensity))+ geom_smooth(aes(x = Ideology, y = CarbonIntensity), method = "lm") + labs(title = "Ideology vs. Carbon Intensity 1998-2020") + theme_pubr()
-
-ggsave("exploratory/ideology_ci.png")
-
-
-ggplot(panel) + geom_point(aes(x = Ideology, y = EnergyIntensity)) + geom_smooth(aes(x = Ideology, y = EnergyIntensity), method = "lm") + labs(title = "Ideology vs. Energy Intensity 1998-2020") + theme_pubr()
-
-ggsave("exploratory/ideology_ei.png")
-
-
-ggplot(panel) + geom_point(aes(x = Ideology, y = CI_Score))+ geom_smooth(aes(y = CI_Score, x = Ideology), method = "lm")+ labs(y = "Carbon Intensity Policy Score", title = "Ideology and Carbon Intensity Policy Score 1998-2020") + theme_pubr()
-
-ggsave("exploratory/ideology_ciscore.png")
-
-ggplot(panel) + geom_point(aes(x = EE_Score, y = EnergyIntensity)) + geom_smooth(aes(y = EnergyIntensity, x = EE_Score), method = "lm") + labs(x = "Energy Intensity Policy Score", y= "Energy Intensity",  title = "Energy Intensity Policy Score and Outcomes 1998-2020") + theme_pubr()
-
-ggsave("exploratory/ei_policiesoutcomes.png")
-
-ggplot(panel) + geom_point(aes(x = CI_Score, y = CarbonIntensity)) + geom_smooth(aes(y = CarbonIntensity, x = CI_Score), method = "lm") + labs(x = "Carbon Intensity Policy Score", y= "Carbon Intensity",  title = "Carbon Intensity Policy Score and Outcomes 1998-2020") + theme_pubr()
-
-ggsave("exploratory/ci_policiesoutcomes.png")
-
-ggplot(panel) + geom_point(aes(x = Ideology, y = EE_Score)) + geom_smooth(aes(y = EE_Score, x = Ideology), method = "lm") + labs(y = "Energy Intensity Policy Score", title = "Ideology and Energy Intensity Policy Score 1998-2020") + theme_pubr()
-
-ggsave("exploratory/ideology_eiscore.png")
-
-
-ggplot(plot_data) + geom_point(aes(x = AvgIdeology, y = AvgCarbonIntensity))
-
-ggplot(state_data, aes(x = AvgIdeology, y = AvgCarbonIntensity)) + geom_text(aes(label = State), nudge_x = 0.5, nudge_y = 0.5, check_overlap = TRUE)
-ggplot(state_data, aes(x = AvgIdeology, y = AvgEnergyIntensity)) + geom_text(aes(label = State), nudge_x = 0.5, nudge_y = 0.5, check_overlap = TRUE)
-
-panel_2019 <- panel %>% filter(Year == 2019)
-
-ggplot(panel_2019) + geom_label(aes(x = Ideology, y = EnergyIntensity, label = State)) + labs(title = "Ideology and Energy Intensity, 2019") + ylim(0, 20) + xlim(-1.5, 1.5)
-
-ggsave("exploratory/ei_ideology_2019.png", height = 4)
-
-ggplot(panel_2019) + geom_label(aes(x = Ideology, y = CarbonIntensity, label = State)) + labs(title = "Ideology and Carbon Intensity, 2019") + ylim(30, 100) + xlim(-1.5, 1.5)
-
-ggsave("exploratory/ci_ideology_2019.png", height = 4)
-
-panel_1998 <- panel %>% filter(Year == 1998)
-
-ggplot(panel_1998) + geom_label(aes(x = Ideology, y = EnergyIntensity, label = State)) + labs(title = "Ideology and Energy Intensity, 1998")+ ylim(0, 20) + xlim(-1.5, 1.5)
-
-ggsave("exploratory/ei_ideology_1998.png", height = 4)
-
-ggplot(panel_1998) + geom_label(aes(x = Ideology, y = CarbonIntensity, label = State)) + labs(title = "Ideology and Carbon Intensity, 1998") + ylim(30, 100) + xlim(-1.5, 1.5)
-
-ggsave("exploratory/ci_ideology_1998.png", height = 4)
-
-hist(panel$CI_Score)
-
-ggsave()
-
-
-```
-
-**Fixed Effects Visualizations**
-
-```{r}
-fixed_m1 <- fixef(m1)
-fixed_m1_no_outliers <- fixef(m1_no_outliers)
-fixed_m2 <- fixef(m2)
-fixed_m2_no_outliers <- fixef(m2_no_outliers)
-
-fixed_m5 <- fixef(m5)
-fixed_m5_no_outliers <- fixef(m5_no_outliers)
-fixed_m6 <- fixef(m6)
-fixed_m6_no_outliers <- fixef(m6_no_outliers)
-fixed_m7 <- fixef(m7)
-fixed_m7_no_outliers <- fixef(m7_no_outliers)
-
-plot(fixed_m1)
-plot(fixed_m2) 
-plot(fixed_m5) 
-plot(fixed_m6) 
-plot(fixed_m7) 
-```
-
-```{r}
-m5 <- feols(
-  data = panel,
-  fml = Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-  panel.id = ~ State + Year,
-  vcov = "driscoll_kraay"
-)
-
-m6 <- feols(
-  data = panel,
-  fml = CI_Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-  panel.id = ~ State + Year,
-  vcov = "driscoll_kraay"
-)
-
-m7 <- feols(
-  data = panel,
-  fml = EE_Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-  panel.id = ~ State + Year,
-  vcov = "driscoll_kraay"
-)
-
-residuals_m5 <- resid(m5)
-
-residual_threshold_m5 <- mean(residuals_m5) + 2*sd(residuals_m5)
-observations_to_exclude_m5 <- which(abs(residuals_m5) > residual_threshold_m5)
-
-data_reduced_m5 <- panel[-observations_to_exclude_m5, ]
-
-residuals_m6 <- resid(m6)
-
-residual_threshold_m6 <- mean(residuals_m6) + 2*sd(residuals_m6)
-observations_to_exclude_m6 <- which(abs(residuals_m6) > residual_threshold_m6)
-
-data_reduced_m6 <- panel[-observations_to_exclude_m6, ]
-
-residuals_m7 <- resid(m7)
-
-residual_threshold_m7 <- mean(residuals_m7) + 2*sd(residuals_m7)
-observations_to_exclude_m7 <- which(abs(residuals_m7) > residual_threshold_m7)
-
-data_reduced_m7 <- panel[-observations_to_exclude_m7, ]
-
-m5_no_outliers <- feols(
-  data = data_reduced_m5,
-  fml = Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-  panel.id = ~ State + Year,
-  vcov = "driscoll_kraay"
-)
-
-m6_no_outliers <- feols(
-  data = data_reduced_m6,
-  fml = CI_Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-  panel.id = ~ State + Year,
-  vcov = "driscoll_kraay"
-)
-
-m7_no_outliers <- feols(
-  data = data_reduced_m7,
-  fml = EE_Score ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-  panel.id = ~ State + Year,
-  vcov = "driscoll_kraay"
-)
-
-m5
-m6
-m7
-m5_no_outliers
-m6_no_outliers
-m7_no_outliers
-```
-
-```{r}
-etable(m5, m5_no_outliers, tex = TRUE, headers = c("w/ Influential", "w/o Influential"))
-etable(m6, m6_no_outliers, m7, m7_no_outliers, tex = TRUE, headers = c("w/ Influential", "w/o Influential", "w/ Influential", "w/o Influential"))
-```
-
-**Lagged Models**
-
-```{r}
-models_carbon <- list()
-models_energy <- list()
-
-for (i in 1:5) {
-  lag_name <- paste0("IdeologyLag", i)
-  
-  fml_carbon <- as.formula(paste("log(CarbonIntensity) ~", lag_name, "+ log(Population) + log(GDPPerCapita) | State + Year"))
-  models_carbon[[i]] <- feols(
-    data = panel,
-    fml = fml_carbon,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
-  
-  fml_energy <- as.formula(paste("log(EnergyIntensity) ~", lag_name, "+ log(Population) + log(GDPPerCapita) | State + Year"))
-  models_energy[[i]] <- feols(
-    data = panel,
-    fml = fml_energy,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
+outcome_formulas <- list()
+
+for (dv in dependent_vars) {
+  for (iv in independent_vars) {
+    formula <- as.formula(paste(dv, "~", iv, "+ log_GDPPerCapita + factor_State + factor_Year"))
+    outcome_formulas[[length(outcome_formulas) + 1]] <- formula
+  }
 }
 
-results <- lapply(models_carbon, summary)
+fit_and_cluster <- function(formula, use_data) {
+  model <- lm(formula = formula, data = use_data)
+  print("modeled")
+  clustered_se <- vcovCL(model, cluster = use_data$factor_State)
+  print("clustered")
+  return(list(model = model, clustered_se = clustered_se))
+}
 
-carbon_model_summaries <- do.call(rbind, lapply(1:length(results), function(i) {
-  model <- results[[i]]
-  ideology_lag_coef <- coef(model)[[paste0("IdeologyLag", i)]]
-  ideology_lag_se <- sqrt(diag(vcov(model)))[[paste0("IdeologyLag", i)]]
-  
-  data.frame(
-    Carbon_Model = paste0("Lag ", i),
-    Carbon_IdeologyLag_Coef = ideology_lag_coef,
-    Carbon_IdeologyLag_SE = ideology_lag_se,
-    Carbon_IdeologyLag_RMSE = unlist(fitstat(model, "rmse"))
-  )
+models <- lapply(outcome_formulas, fit_and_cluster, use_data = panel)
+
+threshold <- 2 / sqrt(nrow(panel))
+filtered_data <- lapply(models, function(model_list) {
+  model <- model_list$model
+  formula <- formula(model)
+  dv <- deparse(formula[[2]])
+  iv <- all.vars(formula[[3]])[1]
+  dfbetas_values <- dfbetas(model)[, iv]
+  influential <- abs(dfbetas_values) > threshold
+  trimmed_data <- model.frame(model)[!influential, ]
+  list(data = trimmed_data, formula = formula, dv = dv, iv = iv)
+})
+
+trimmed_models <- lapply(filtered_data, function(info) {
+  data <- info$data
+  formula <- info$formula
+  fit_and_cluster(formula, use_data = data)
+})
+
+extract_results <- function(model_list, trimmed, dataset) {
+  model <- model_list$model
+  clustered_se <- model_list$clustered_se
+  tidy(coeftest(model, vcov = clustered_se)) %>%
+    filter(term %in% c("Ideology", "IdeologyLag1", "IdeologyLag2")) %>%
+    mutate(Trimmed = trimmed, Observations = nrow(dataset), DV = deparse(formula(model)[[2]]))
+}
+
+results_initial <- bind_rows(lapply(models, function(m) {
+  extract_results(m, trimmed = FALSE, dataset = panel)
 }))
 
-results <- lapply(models_energy, summary)
+results_trimmed <- bind_rows(Map(function(m, i) {
+  extract_results(m, trimmed = TRUE, dataset = filtered_data[[i]]$data)
+}, trimmed_models, seq_along(trimmed_models)))
 
-energy_model_summaries <- do.call(rbind, lapply(1:length(results), function(i) {
-  model <- results[[i]]
-  ideology_lag_coef <- coef(model)[[paste0("IdeologyLag", i)]]
-  ideology_lag_se <- sqrt(diag(vcov(model)))[[paste0("IdeologyLag", i)]]
+final_results_outcomes <- bind_rows(results_initial, results_trimmed) %>%
+  select(DV, Trimmed, Observations, term, estimate, std.error, statistic, p.value)
+```
+
+**Fixed Effects Policy Scores**
+
+```{r}
+dependent_vars <- list(
+  m0 = "Score",
+  m1 = "CI_Score",
+  m2 = "EE_Score"
+)
+
+formulas <- list()
+for (dv in dependent_vars) {
+  for (iv in independent_vars) {
+    formula <- as.formula(paste(dv, "~", iv, "+ log_GDPPerCapita + factor_State + factor_Year"))
+    formulas[[length(formulas) + 1]] <- formula
+  }
+}
+
+fit_and_cluster <- function(formula, use_data) {
+  model <- glm(formula = formula, data = use_data, family = "poisson")
+  print("modeled")
   
-  data.frame(
-    Energy_Model = paste0("Lag ", i),
-    Energy_IdeologyLag_Coef = ideology_lag_coef,
-    Energy_IdeologyLag_SE = ideology_lag_se,
-    Energy_IdeologyLag_RMSE = unlist(fitstat(model, "rmse"))
-  )
+  clustered_se <- vcovCL(model, cluster = use_data$factor_State)
+  print("clustered")
+  return(list(model = model, clustered_se = clustered_se))
+}
+
+models <- lapply(formulas, fit_and_cluster, use_data = panel)
+
+threshold <- 2 / sqrt(nrow(panel))
+
+filtered_data <- lapply(models, function(model_list) {
+  model <- model_list$model
+  formula <- formula(model)
+  dv <- deparse(formula[[2]])
+  iv <- all.vars(formula[[3]])[1]
+  dfbetas_values <- dfbetas(model)[, iv]
+  influential <- abs(dfbetas_values) > threshold
+  trimmed_data <- model.frame(model)[!influential, ]
+  list(data = trimmed_data, formula = formula, dv = dv, iv = iv)
+})
+
+trimmed_models <- lapply(filtered_data, function(info) {
+  data <- info$data
+  formula <- info$formula
+  fit_and_cluster(formula, use_data = data)
+})
+
+extract_results <- function(model_list, trimmed, dataset) {
+  model <- model_list$model
+  clustered_se <- model_list$clustered_se
+  tidy(coeftest(model, vcov = clustered_se)) %>%
+    filter(term %in% c("Ideology", "IdeologyLag1", "IdeologyLag2")) %>%
+    mutate(Trimmed = trimmed, Observations = nrow(dataset), DV = deparse(formula(model)[[2]]))
+}
+
+results_initial <- bind_rows(lapply(models, function(m) {
+  extract_results(m, trimmed = FALSE, dataset = panel)
 }))
 
-model_summaries <- data.frame(
-  Model = carbon_model_summaries$Carbon_Model,
-  CarbonCoef = carbon_model_summaries$Carbon_IdeologyLag_Coef,
-  EnergyCoef = energy_model_summaries$Energy_IdeologyLag_Coef,
-  CarbonRMSE = carbon_model_summaries$Carbon_IdeologyLag_RMSE,
-  EnergyRMSE = energy_model_summaries$Energy_IdeologyLag_RMSE
-)
+results_trimmed <- bind_rows(Map(function(m, i) {
+  extract_results(m, trimmed = TRUE, dataset = filtered_data[[i]]$data)
+}, trimmed_models, seq_along(trimmed_models)))
 
-model_summaries <- melt(model_summaries)
-
-ggplot(model_summaries) + geom_line(aes(x = Model, y = value, group = variable, color = variable)) + geom_point(aes(x = Model, y = value, group = variable, color = variable)) + labs( color = "Intensity/Metric", y = "")
-
-ggsave("exploratory/lagged_coefs.png", height = 4)
-
-summary(m1)
-summary(m2)
-```
-
-**Fixed Effects Exploration**
-
-```{r}
-plot(fixef(
-  feols(
-    data = panel,
-    fml = log(CarbonIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
-))
-
-plot(fixef(
-  feols(
-    data = panel,
-    fml = log(CarbonIntensity) ~ log(Population) + log(GDPPerCapita) | State + Year,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
-))
-
-plot(fixef(
-  feols(
-    data = panel,
-    fml = log(EnergyIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
-))
-
-plot(fixef(
-  feols(
-    data = panel,
-    fml = log(EnergyIntensity) ~ log(Population) + log(GDPPerCapita) | State + Year,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
-))
-
-plot(fixef(
-  feols(
-    data = panel,
-    fml = CI_Score ~ log(Population) + log(GDPPerCapita) | State + Year,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
-))
-
-plot(fixef(
-  feols(
-    data = panel,
-    fml = EE_Score ~ log(Population) + log(GDPPerCapita) | State + Year,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
-))
+final_results_policy <- bind_rows(results_initial, results_trimmed) %>%
+  select(DV, Trimmed, Observations, term, estimate, std.error, statistic, p.value)
 ```
 
 ```{r}
-ci_model_without_ideology <- feols(log(CarbonIntensity) ~ log(GDPPerCapita) + log(Population) | State + Year, data = panel)
-
-ci_model_with_ideology <- feols(log(CarbonIntensity) ~ Ideology + log(GDPPerCapita) + log(Population) | State + Year, data = panel)
-
-fixed_effects_without_ideology <- fixef(ci_model_without_ideology)
-fixed_effects_with_ideology <- fixef(ci_model_with_ideology)
-
-effects_difference <- fixed_effects_with_ideology$State - fixed_effects_without_ideology$State
-
-df_effects_difference <- data.frame(State = names(effects_difference), Difference = effects_difference)
-
-ggplot(df_effects_difference, aes(x = State, y = Difference)) +
-  geom_bar(stat = "identity") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  labs(title = "Difference in State Fixed Effects With vs. Without Ideology",
-       x = "State",
-       y = "Difference in Fixed Effect")
-
-ei_model_without_ideology <- feols(log(EnergyIntensity) ~ log(GDPPerCapita) + log(Population) | State + Year, data = panel)
-
-ei_model_with_ideology <- feols(log(EnergyIntensity) ~ Ideology + log(GDPPerCapita) + log(Population) | State + Year, data = panel)
-
-fixed_effects_without_ideology <- fixef(ei_model_without_ideology)
-fixed_effects_with_ideology <- fixef(ei_model_with_ideology)
-
-effects_difference <- fixed_effects_with_ideology$State - fixed_effects_without_ideology$State
-
-df_effects_difference <- data.frame(State = names(effects_difference), Difference = effects_difference)
-
-ggplot(df_effects_difference, aes(x = State, y = Difference)) +
-  geom_bar(stat = "identity") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  labs(title = "Difference in State Fixed Effects With vs. Without Ideology",
-       x = "State",
-       y = "Difference in Fixed Effect")
-```
-
-**Halves**
-
-```{r}
-panel_halves <- panel %>%
-  group_by(Year) %>%
-  mutate(LowerHalf = Ideology <= median(Ideology, na.rm = TRUE)) %>%
-  ungroup()
-
-panel_halves <- na.omit(panel_halves)
-
-ggplot(panel_halves) + 
-  geom_point(aes(x = Year, y = x_rps_targets_bindingonly, color = LowerHalf))
-
-ggplot(panel_halves) + 
-  geom_point(aes(x = Year, y = x_eers, color = LowerHalf))
-
-ggplot(panel_halves) + 
-  stat_summary(aes(x = Year, y = x_rps_targets_bindingonly, color = LowerHalf), 
-               fun = mean, geom = "line", na.rm = TRUE)
-
-ggplot(panel_halves) + 
-  stat_summary(aes(x = Year, y = x_eers, color = LowerHalf),
-               fun = mean, geom = "line", na.rm = TRUE)
-
-ggplot(panel_halves) + 
-  stat_summary(aes(x = Year, y = z_gasoline_tax, color = LowerHalf),
-               fun = mean, geom = "line", na.rm = TRUE)
-
-### POLICY-NATURAL RESOURCE TRADE OFF
-
-ggplot(panel_halves) + 
-  geom_jitter(aes(x = CI_Score, y = CarbonIntensity, color = LowerHalf)) + geom_smooth(aes(x = CI_Score, y = CarbonIntensity, color = LowerHalf)) + labs(x = "Carbon Intensity Policy Score", y = "Carbon Intensity", color = "Further left than median ideology?")
-
-ggsave("exploratory/ci_score_carbonintensity.png")
-
-ggplot(panel_halves) + 
-  geom_jitter(aes(x = EE_Score, y = EnergyIntensity, color = LowerHalf)) + geom_smooth(aes(x = EE_Score, y = EnergyIntensity, color = LowerHalf)) + labs(x = "Energy Intensity Policy Score", y = "Energy Intensity", color = "Further left than median ideology?")
-
-ggsave("exploratory/ei_score_energyintensity.png")
-
-ggplot(panel_halves) + 
-  geom_jitter(aes(x = Ideology, y = CarbonIntensity, color = LowerHalf)) + geom_smooth(aes(x = Ideology, y = CarbonIntensity, color = LowerHalf))
-
-ggplot(panel_halves) + 
-  geom_jitter(aes(x = Ideology, y = EnergyIntensity, color = LowerHalf)) + geom_smooth(aes(x = Ideology, y = EnergyIntensity, color = LowerHalf))
-
-ggplot(panel_halves) + 
-  geom_jitter(aes(x = Ideology, y = x_rps_targets_bindingonly,  color = LowerHalf)) + geom_smooth(aes(x = Ideology, y = x_rps_targets_bindingonly))
-
-ggplot(panel_halves) + 
-  geom_jitter(aes(x = Ideology, y = x_eers,  color = LowerHalf)) + geom_smooth(aes(x = Ideology, y = x_eers))
-
-ggplot(panel_halves %>% filter(Year == 2000)) + 
-  geom_text_repel(aes(x = Ideology, y = x_rps_targets_bindingonly, label = State, color = LowerHalf)) + geom_smooth(aes(x = Ideology, y = x_rps_targets_bindingonly), method = "lm")
-
-ggplot(panel_halves %>% filter(Year == 2000)) + 
-  geom_text_repel(aes(x = Ideology, y = x_eers, label = State, color = LowerHalf)) + geom_smooth(aes(x = Ideology, y = x_eers), method = "lm")
-
-ggplot(panel_halves %>% filter(Year == 2019)) + 
-  geom_text_repel(aes(x = Ideology, y = x_rps_targets_bindingonly, label = State, color = LowerHalf)) + geom_smooth(aes(x = Ideology, y = x_rps_targets_bindingonly), method = "lm")
-
-ggplot(panel_halves %>% filter(Year == 2019)) + 
-  geom_text_repel(aes(x = Ideology, y = x_eers, label = State, color = LowerHalf)) + geom_smooth(aes(x = Ideology, y = x_eers), method = "lm")
-
-ggplot(panel_halves) + 
-  geom_jitter(aes(x = Ideology, y = EnergyIntensity)) + geom_smooth(aes(x = Ideology, y = EnergyIntensity, color = LowerHalf))
-
-ggplot(panel_halves) + 
-  geom_point(aes(x = Speed120m, y = x_rps_targets_bindingonly, color = LowerHalf)) + geom_smooth(aes(x = Speed120m, y = x_rps_targets_bindingonly, color = LowerHalf))
-
-ggplot(panel_halves) + 
-  geom_point(aes(x = GHI, y = x_rps_targets_bindingonly, color = LowerHalf)) + geom_smooth(aes(x = GHI, y = x_rps_targets_bindingonly, color = LowerHalf))
-
-ggplot(panel_halves) + 
-  geom_point(aes(x = PercentUrban, y = x_rps_targets_bindingonly, color = LowerHalf)) + geom_smooth(aes(x = PercentUrban, y = x_rps_targets_bindingonly, color = LowerHalf))
-
-### DG POLICIES
-
-ggplot(panel_halves) + 
-  geom_point(aes(x = Year, y = DG_Score, color = LowerHalf)) +
-  geom_smooth(aes(x = Year, y = DG_Score, color = LowerHalf), method = "lm")
-
-ggplot(panel_halves) + 
-  geom_point(aes(x = Ideology, y = CI_Score, color = LowerHalf)) +
-  geom_smooth(aes(x = Ideology, y = CI_Score), method = "lm")
-
-ggplot(panel_halves) + 
-  geom_point(aes(x = Year, y = EE_Score, color = LowerHalf)) +
-  geom_smooth(aes(x = Year, y = EE_Score, color = LowerHalf), method = "lm")
-
-ggplot(panel_halves) + 
-  geom_point(aes(x = Year, y = CI_Score, color = LowerHalf)) +
-  geom_smooth(aes(x = Year, y = CI_Score, color = LowerHalf), method = "lm")
-
-### RPS 
-
-ggplot(panel_halves) + 
-  geom_point(aes(x = GHI, y = x_rps_targets_bindingonly, color = LowerHalf))
-
-ggplot(panel_halves) + 
-  geom_point(aes(x = Speed120m, y = x_rps_targets_bindingonly, color = LowerHalf))
-```
-
-**Differences**
-
-```{r}
-panel_2019_sub <- panel_2019 %>% select(State, Year, Ideology, CarbonIntensity, EnergyIntensity, CI_Score, EE_Score
-)
-
-panel_1998_sub <- panel_1998 %>% select(State, Year, Ideology, CarbonIntensity, EnergyIntensity, CI_Score, EE_Score)
-
-colnames(panel_1998_sub) <- c("State", "Year", "1998_Ideology", "1998_CarbonIntensity", "1998_EnergyIntensity", "1998_CI_Score", "1998_EE_Score")
-
-panel_diffs <- merge(panel_1998_sub, panel_2019_sub, by = c("State"))
-
-panel_diffs$CI_Diff <- panel_diffs$CarbonIntensity - panel_diffs$`1998_CarbonIntensity`
-
-panel_diffs$EI_Diff <- panel_diffs$EnergyIntensity - panel_diffs$`1998_EnergyIntensity`
-
-panel_diffs$Ideology_Diff <- panel_diffs$Ideology - panel_diffs$`1998_Ideology`
-
-ggplot(panel_diffs) + geom_point(aes(x = Ideology_Diff, y = CI_Diff))
-ggplot(panel_diffs) + geom_point(aes(x = Ideology_Diff, y = EI_Diff))
-```
-
-**Testing Relative Importance of Fixed Effects**
-
-```{r}
-panel <- read.csv("panel_with_count_FEB20.csv")
-
-m1_state_year <- feols(
-  data = panel,
-  fml = log(CarbonIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-  panel.id = ~ State + Year,
-  vcov = "driscoll_kraay"
-)
-
-m2_state_year <- feols(
-  data = panel,
-  fml = log(EnergyIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | State + Year,
-  panel.id = ~ State + Year,
-  vcov = "driscoll_kraay"
-)
-
-m1_state <- feols(
-  data = panel,
-  fml = log(CarbonIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | State,
-  panel.id = ~ State + Year,
-  vcov = "driscoll_kraay"
-)
-
-m2_state <- feols(
-  data = panel,
-  fml = log(EnergyIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | State,
-  panel.id = ~ State + Year,
-  vcov = "driscoll_kraay"
-)
-
-m1_year <- feols(
-  data = panel,
-  fml = log(CarbonIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | Year,
-  panel.id = ~ State + Year,
-  vcov = "driscoll_kraay"
-)
-
-m2_year <- feols(
-  data = panel,
-  fml = log(EnergyIntensity) ~ Ideology + log(Population) + log(GDPPerCapita) | Year,
-  panel.id = ~ State + Year,
-  vcov = "driscoll_kraay"
-)
-
-etable(m1_state_year, m1_state, m1_year, tex = TRUE)
-etable(m2_state_year, m2_state, m2_year, tex = TRUE)
-
-
-summary(m1_state_year)
-summary(m1_state)
-summary(m1_year)
-
-summary(m2_state_year)
-summary(m2_state)
-summary(m2_year)
-```
-
-**Policy Visualizations**
-
-```{r}
-panel_1998 <- panel %>% filter(Year == 1998)
-panel_2019 <- panel %>% filter(Year == 2019)
-
-ggplot(panel_2019) + geom_text(aes(x = Ideology, y = CarbonIntensity, label = State))
-
-### CONTINUOUS
-
-ggplot(panel) + geom_point(aes(x = Ideology, y = x_eers)) +
-  geom_smooth(aes(x = Ideology, y = x_eers), method = "lm")
-
-ggplot(panel) + geom_point(aes(x = Ideology, y = x_rps_targets_bindingonly)) +
-  geom_smooth(aes(x = Ideology, y = x_rps_targets_bindingonly), method = "lm")
-
-ggplot(panel) + geom_point(aes(x = Ideology, y = z_gasoline_tax)) +
-  geom_smooth(aes(x = Ideology, y = z_gasoline_tax), method = "lm")
-
-ggplot(state_data, aes(x = AvgIdeology, y = AvgBindingRPS)) + geom_text(aes(label = State), nudge_x = 0.5, nudge_y = 0.5, check_overlap = TRUE)
-
-ggplot(state_data, aes(x = AvgIdeology, y = AvgEfficiencyProcurement)) + geom_text(aes(label = State), nudge_x = 0.5, nudge_y = 0.5, check_overlap = TRUE)
-
-ggplot(state_data, aes(x = AvgIdeology, y = AvgGasolineTax)) + geom_text(aes(label = State), nudge_x = 0.5, nudge_y = 0.5, check_overlap = TRUE)
-
-ggplot(panel_1998, aes(x = Ideology, y = x_rps_targets_bindingonly)) + geom_text_repel(aes(label = State), max.overlaps = 20, arrow = arrow(length = unit(0.015, "npc"))) + ylim(0,60) + xlim(-2, 2)
-
-ggplot(panel_2019, aes(x = Ideology, y = x_rps_targets_bindingonly)) + geom_text_repel(aes(label = State), max.overlaps = 20, arrow = arrow(length = unit(0.015, "npc"))) + ylim(0,60) + xlim(-2, 2)
-
-panel_2000 <- panel %>% filter(Year == 2000)
-
-ggplot(panel_2000, aes(x = Ideology, y = x_eers)) + geom_text_repel(aes(label = State), max.overlaps = 20, arrow = arrow(length = unit(0.015, "npc"))) + ylim(0,5) + xlim(-2, 2)
-
-ggplot(panel_2019, aes(x = Ideology, y = x_eers)) + geom_text_repel(aes(label = State), max.overlaps = 20, arrow = arrow(length = unit(0.015, "npc"))) + ylim(0,5) + xlim(-2, 2)
-
-### POLICY COUNT
-
-ggplot(panel_1998, aes(x = Ideology, y = CI_Score)) + geom_text_repel(aes(label = State), max.overlaps = 20,
-    arrow = arrow(length = unit(0.015, "npc"))) + ylim(0,15) + xlim(-2, 2)
-
-ggplot(panel_2019, aes(x = Ideology, y = CI_Score)) + geom_text_repel(aes(label = State), max.overlaps = 20,
-    arrow = arrow(length = unit(0.015, "npc"))) + ylim(0,15) + xlim(-2, 2)
-
-### POLICY COUNT VS OUTCOME
-
-ggplot(panel_1998, aes(x = CI_Score, y = CarbonIntensity)) + geom_text_repel(aes(label = State), max.overlaps = 20,
-    arrow = arrow(length = unit(0.015, "npc"))) + xlim(0,20) + ylim(0,90)
-
-ggplot(panel_2019, aes(x = CI_Score, y = CarbonIntensity)) + geom_text_repel(aes(label = State), max.overlaps = 20,
-    arrow = arrow(length = unit(0.015, "npc"))) + xlim(0,20) + ylim(0,90)
-
-ggplot(panel_1998, aes(x = EE_Score, y = EnergyIntensity)) + geom_text_repel(aes(label = State), max.overlaps = 20,
-    arrow = arrow(length = unit(0.015, "npc"))) + xlim(0,20) + ylim(0,25)
-
-ggplot(panel_2019, aes(x = EE_Score, y = EnergyIntensity)) + geom_text_repel(aes(label = State), max.overlaps = 20,
-    arrow = arrow(length = unit(0.015, "npc"))) + xlim(0,20) + ylim(0,25)
-
-### CONTINUOUS VS OUTCOME
-
-ggplot(panel_1998, aes(x = x_rps_targets_bindingonly, y = CarbonIntensity)) + geom_text_repel(aes(label = State), max.overlaps = 20,
-    arrow = arrow(length = unit(0.015, "npc")))
-
-ggplot(panel_2019, aes(x = x_rps_targets_bindingonly, y = CarbonIntensity)) + geom_text_repel(aes(label = State), max.overlaps = 20,
-    arrow = arrow(length = unit(0.015, "npc")))
-
-ggplot(panel_2000, aes(x = x_eers, y = EnergyIntensity)) + geom_text_repel(aes(label = State), max.overlaps = 20, arrow = arrow(length = unit(0.015, "npc")))
-
-ggplot(panel_2019, aes(x = x_eers, y = EnergyIntensity)) + geom_text_repel(aes(label = State), max.overlaps = 20,
-    arrow = arrow(length = unit(0.015, "npc")))
-
-```
-
-```{r}
-summary(baseline_carbon_policy)
-summary(baseline_energy_policy)
-
-multi.page.2
-```
-
-**Polynomial Tests**
-
-```{r}
-fit_model_and_calculate_adjr2 <- function(data, formula, power) {
-  dynamic_formula <- as.formula(
-    paste0("log(", formula, ") ~ I(Ideology^", power, ") + log(Population) + log(GDPPerCapita) | State + Year")
-  )
+permutation_results <- list()
+
+for (fml in outcome_formulas) {
+  dv <- deparse(fml[[2]])
+  iv <- all.vars(fml[[3]])[1]
   
-  model <- feols(
-    fml = dynamic_formula,
-    data = data,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
+  print(paste("Processing IV:", iv, "for DV:", dv))
   
-  adjr2 <- fitstat(model, type = "ar2")
-
-  return(adjr2)
-}
-
-fit_model_and_calculate_r2 <- function(data, formula, power) {
-  dynamic_formula <- as.formula(
-    paste0("log(", formula, ") ~ I(Ideology^", power, ") + log(Population) + log(GDPPerCapita) | State + Year")
-  )
+  null_distribution <- numeric(1000)
   
-  model <- feols(
-    fml = dynamic_formula,
-    data = data,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
-  
-  r2 <- fitstat(model, type = "r2")
-
-  return(r2)
-}
-
-adj_r2_m1 <- numeric(10)
-adj_r2_m2 <- numeric(10)
-
-r2_m1 <- numeric(10)
-r2_m2 <- numeric(10)
-
-for (i in 1:10) {
-  adj_r2_m1[i] <- fit_model_and_calculate_adjr2(panel, "CarbonIntensity", i)
-  adj_r2_m2[i] <- fit_model_and_calculate_adjr2(panel, "EnergyIntensity", i)
-  r2_m1[i] <- fit_model_and_calculate_r2(panel, "CarbonIntensity", i)
-  r2_m2[i] <- fit_model_and_calculate_r2(panel, "EnergyIntensity", i)
-}
-
-results <- data.frame(
-    "CarbonAdjR2" = unlist(adj_r2_m1),
-    "EnergyAdjR2" = unlist(adj_r2_m2),
-    "CarbonR2" = unlist(r2_m1),
-    "EnergyR2" = unlist(r2_m2)
+  for (i in 1:1000) {
+    shuffled_data <- panel %>%
+      group_by(factor_State) %>%
+      mutate(!!sym(iv) := sample(!!sym(iv))) %>%
+      ungroup()
+    
+    updated_formula <- fml #
+    
+    model <- lm(
+      formula = updated_formula,
+      data = shuffled_data
     )
-
-results$poly <- rep(1:10)
-results <- melt(results, "poly")
-
-ggplot(results) + geom_point(aes(x = poly,  y = value, color = variable)) + labs(x = "Polynomial Degree", y = "Metric", color = "Intensity/Metric") + geom_line(aes(x = poly,  y = value, color = variable)) + xlim(1,10) + scale_x_continuous(limit = c(1,10), 
-                         breaks = c(1:10), 
-                         labels = c(1:10)) 
-
-ggsave("exploratory/polynomial_outcomes.png", height = 5)
+    
+    clustered_se <- vcovCL(model, cluster = ~ factor_State)
+    
+    null_distribution[i] <- coef(model)[iv]
+  }
+  
+  permutation_results[[paste(dv, iv, sep = ".")]] <- null_distribution
+}
 ```
 
-**Polynomial Tests for Continuous Policy Measures**
+**Permutation - Policy Score**
 
 ```{r}
-fit_model_and_calculate_adjr2 <- function(data, formula, power) {
-  dynamic_formula <- as.formula(
-    paste0(formula, "~ I(Ideology^", power, ") + log(Population) + log(GDPPerCapita) | State + Year")
-  )
+for (fml in formulas) {
+  dv <- deparse(fml[[2]])
+  iv <- all.vars(fml[[3]])[1]
   
-  model <- feols(
-    fml = dynamic_formula,
-    data = data,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
+  print(paste("Processing IV:", iv, "for DV:", dv))
   
-  adjr2 <- fitstat(model, type = "ar2")
-
-  return(adjr2)
-}
-
-fit_model_and_calculate_r2 <- function(data, formula, power) {
-  dynamic_formula <- as.formula(
-    paste0(formula, "~ I(Ideology^", power, ") + log(Population) + log(GDPPerCapita) | State + Year")
-  )
+  null_distribution <- numeric(1000)
   
-  model <- feols(
-    fml = dynamic_formula,
-    data = data,
-    panel.id = ~ State + Year,
-    vcov = "driscoll_kraay"
-  )
-  
-  r2 <- fitstat(model, type = "r2")
-
-  return(r2)
-}
-
-adj_r2_m1 <- numeric(10)
-adj_r2_m2 <- numeric(10)
-
-r2_m1 <- numeric(10)
-r2_m2 <- numeric(10)
-
-for (i in 1:10) {
-  adj_r2_m1[i] <- fit_model_and_calculate_adjr2(panel, "x_rps_targets_bindingonly", i)
-  adj_r2_m2[i] <- fit_model_and_calculate_adjr2(panel, "x_eers", i)
-  r2_m1[i] <- fit_model_and_calculate_r2(panel, "x_rps_targets_bindingonly", i)
-  r2_m2[i] <- fit_model_and_calculate_r2(panel, "x_eers", i)
-}
-
-results_policy <- data.frame(
-    "RPSAdjR2" = unlist(adj_r2_m1),
-    "EERSAdjR2" = unlist(adj_r2_m2),
-    "RPSR2" = unlist(r2_m1),
-    "EERSR2" = unlist(r2_m2)
+  for (i in 1:1000) {
+    shuffled_data <- panel %>%
+      group_by(factor_State) %>%
+      mutate(!!sym(iv) := sample(!!sym(iv))) %>%
+      ungroup()
+    
+    updated_formula <- fml #
+    
+    model <- glm(
+      formula = updated_formula,
+      data = shuffled_data,
+      family = poisson
     )
+    
+    clustered_se <- vcovCL(model, cluster = ~ factor_State)
+    
+    null_distribution[i] <- coef(model)[iv]
+  }
+  
+  permutation_results[[paste(dv, iv, sep = ".")]] <- null_distribution
+}
 
-results_policy$poly <- rep(1:10)
-results_policy <- melt(results_policy, "poly")
-
-ggplot(results_policy) + geom_point(aes(x = poly,  y = value, color = variable)) + labs(x = "Polynomial Degree", y = "Metric", color = "Policy/Metric") + geom_line(aes(x = poly,  y = value, color = variable)) + xlim(1,10) + scale_x_continuous(limit = c(1,10), 
-                         breaks = c(1:10), 
-                         labels = c(1:10)) 
-
-ggsave("exploratory/polynomial_policies.png", height = 5)
+write.csv(permutation_results, "exports/permutation_results.csv")
 ```
 
 ```{r}
-cooks_model_ci <- lm(log(CarbonIntensity) ~ Ideology + log(GDPPerCapita) + log(Population) + factor(State) + factor(Year), data = plm::pdata.frame(panel))
+permutation_coefficients <- permutation_results %>% as.data.frame()
+permutation_coefficients <- melt(permutation_coefficients)
 
-cooks_distances_ci <- cooks.distance(cooks_model_ci)
+final_outcomes <- final_results_outcomes %>% filter(Trimmed == FALSE) %>% mutate(
+  variable = case_when(
+    DV == "log_CarbonIntensity" & term == "Ideology" ~ "log_CarbonIntensity.Ideology",
+    DV == "log_CarbonIntensity" & term == "IdeologyLag1" ~ "log_CarbonIntensity.IdeologyLag1",
+    DV == "log_CarbonIntensity" & term == "IdeologyLag2" ~ "log_CarbonIntensity.IdeologyLag2",
+    
+    DV == "log_EnergyIntensity" & term == "Ideology" ~ "log_EnergyIntensity.Ideology",
+    DV == "log_EnergyIntensity" & term == "IdeologyLag1" ~ "log_EnergyIntensity.IdeologyLag1",
+    DV == "log_EnergyIntensity" & term == "IdeologyLag2" ~ "log_EnergyIntensity.IdeologyLag2",
 
-threshold <- 4 / (nrow(plm::pdata.frame(panel)) - length(cooks_model_ci$coefficients) - 1)
-influential_points_ci <- which(cooks_distances_ci > threshold)
-
-# Print the indices of the most influential points
-names(influential_points_ci)
-
-# Plot Cook's distances to visualize influential points
-plot(cooks_distances_ci, type = "h", main = "Cook's Distance",
-     ylab = "Cook's distance", xlab = "Observation Index")
-abline(h = threshold, col = "red", lty = 2)  # Add threshold line
-
-plot(
-  lm(log(CarbonIntensity) ~ Ideology + log(GDPPerCapita) + log(Population) + factor(State) + factor(Year), data = plm::pdata.frame(panel))
+    DV == "log_EmissionsPerCapita" & term == "Ideology" ~ "log_EmissionsPerCapita.Ideology",
+    DV == "log_EmissionsPerCapita" & term == "IdeologyLag1" ~ "log_EmissionsPerCapita.IdeologyLag1",
+    DV == "log_EmissionsPerCapita" & term == "IdeologyLag2" ~ "log_EmissionsPerCapita.IdeologyLag2"
+  )
 )
 
-plot(
-  lm(log(EnergyIntensity) ~ Ideology + log(GDPPerCapita) + log(Population) + factor(State) + factor(Year), data = plm::pdata.frame(panel))
-)
-```
+final_policy <- final_results_policy %>% filter(Trimmed == FALSE) %>% mutate(
+  variable = case_when(
+    DV == "Score" & term == "Ideology" ~ "Score.Ideology",
+    DV == "Score" & term == "IdeologyLag1" ~ "Score.IdeologyLag1",
+    DV == "Score" & term == "IdeologyLag2" ~ "Score.IdeologyLag2",
+    
+    DV == "CI_Score" & term == "Ideology" ~ "CI_Score.Ideology",
+    DV == "CI_Score" & term == "IdeologyLag1" ~ "CI_Score.IdeologyLag1",
+    DV == "CI_Score" & term == "IdeologyLag2" ~ "CI_Score.IdeologyLag2",
 
-**Graphing Models**
-
-```{r}
-### CONTINUOUS POLICY
-
-ggplot(panel, aes(x = Ideology, y = x_rps_targets_bindingonly)) +
-  geom_point() +  # Add points
-  geom_smooth(method = "lm", formula = y ~ poly(x, 3, raw = TRUE), se = FALSE, color = "blue") +
-  theme_minimal() +
-  labs(x = "Ideology", y = "RPS Threshold", title = "Third-Degree Polynomial Regression of RPS Thresholds on Ideology")
-
-ggplot(panel, aes(x = Ideology, y = x_eers)) +
-  geom_point() +  # Add points
-  geom_smooth(method = "lm", formula = y ~ poly(x, 3, raw = TRUE), se = FALSE, color = "blue") +
-  theme_minimal() +
-  labs(x = "Ideology", y = "Procurement Standard", title = "Third-Degree Polynomial Regression of Procurement Standards on Ideology")
-
-ggplot(panel %>% filter(Year == 2019), aes(x = Ideology, y = x_rps_targets_bindingonly)) +
-  geom_text(aes(label = State)) +  # Add points
-  geom_smooth(method = "lm", formula = y ~ poly(x, 3, raw = TRUE), se = FALSE, color = "blue") +
-  theme_minimal() +
-  labs(x = "Ideology", y = "RPS Threshold", title = "Third-Degree Polynomial Regression of RPS Thresholds on Ideology")
-
-ggplot(panel %>% filter(Year == 2019), aes(x = Ideology, y = x_eers)) +
-  geom_text(aes(label = State))+  # Add points
-  geom_smooth(method = "lm", formula = y ~ poly(x, 3, raw = TRUE), se = FALSE, color = "blue") +
-  theme_minimal() +
-  labs(x = "Ideology", y = "Procurement Standard", title = "Third-Degree Polynomial Regression of Procurement Standards on Ideology")
-
-ggplot(panel %>% filter(Year == 2019), aes(x = Ideology, y = CarbonIntensity)) +
-  geom_text(aes(label = State)) +  # Add points
-  geom_smooth(method = "lm", formula = y ~ poly(x, 3, raw = TRUE), se = FALSE, color = "blue") +
-  theme_minimal() +
-  labs(x = "Ideology", y = "RPS Threshold", title = "Third-Degree Polynomial Regression of RPS Thresholds on Ideology")
-
-ggplot(panel %>% filter(Year == 2019), aes(x = Ideology, y = EnergyIntensity)) +
-  geom_text(aes(label = State))+  # Add points
-  geom_smooth(method = "lm", formula = y ~ poly(x, 3, raw = TRUE), se = FALSE, color = "blue") +
-  theme_minimal() +
-  labs(x = "Ideology", y = "Procurement Standard", title = "Third-Degree Polynomial Regression of Procurement Standards on Ideology")
-
-```
-
-**Natural Conditions**
-
-```{r}
-summary(
-  lm(x_rps_targets_bindingonly ~ GHI * PercentUrban, panel)
+    DV == "EE_Score" & term == "Ideology" ~ "EE_Score.Ideology",
+    DV == "EE_Score" & term == "IdeologyLag1" ~ "EE_Score.IdeologyLag1",
+    DV == "EE_Score" & term == "IdeologyLag2" ~ "EE_Score.IdeologyLag2"
+  )
 )
 
-summary(
-  lm(x_rps_targets_bindingonly ~ Ideology, panel)
-)
+final_coefficients <- rbind.data.frame(final_outcomes, final_policy)
 
-summary(
-  lm(log(CarbonIntensity) ~ x_rps_targets_bindingonly, panel)
-)
+permutation_coefficients <- permutation_coefficients %>%
+  left_join(y = final_coefficients, join_by(variable)) %>%
+  mutate(permutation_greater = value >= estimate)
 
-summary(
-  lm(log(EnergyIntensity) ~ x_eers, panel)
-)
-```
+write.csv(permutation_coefficients, "exports/permutation_coefficients.csv")
 
-**Cases**
+permutation_results <- permutation_coefficients  %>%
+  group_by(variable) %>% reframe(mean = mean(permutation_greater))
 
-```{r}
-panel_cases <- panel %>% filter(State %in% c("MA", "AZ"))
-
-ggplot(panel_cases) + geom_line(aes(x = Year, y = Ideology, color = State))
-
-ggplot(panel_cases) + geom_line(aes(x = Year, y = CarbonIntensity, color = State))
-
-ggplot(panel_cases) + geom_line(aes(x = Year, y = EnergyIntensity, color = State))
-
-ggplot(panel_cases) + geom_point(aes(x = Year, y = x_rps_targets_bindingonly, color = State))
-
-ggplot(panel_cases) + geom_point(aes(x = Year, y = x_eers, color = State))
+ggplot(permutation_coefficients) + geom_density(aes(x = value)) + facet_wrap(~ variable, ncol = 3) + 
+  geom_vline(
+    aes(xintercept = estimate, color = variable), 
+    linetype = "dashed"
+  )
 ```

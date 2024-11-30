@@ -24,7 +24,7 @@ set.seed(07151129)
 Loading data from their replication file
 
 ```{r}
-panel <- read.csv("panel_data_FEB20.csv")
+panel <- read.csv("panel.csv")
 
 policies <- read.csv("replication/policies_updated.csv") %>% filter(year >= 1998) %>% filter(abb != "DC") %>% select(-X)
 ```
@@ -73,8 +73,6 @@ energy_intensity_policies <- c("PublicBuildingStandards", "CompleteStreets", "Ef
 
 other_policies <- c("ClimateActionPlan", "PublicBenefitFunds", "PACE", "StateNEPA", "CACarStandards", "GHGTargets")
 
-dg_policies <- c("ResSolarTaxCredit", "NetMeter", "CommunitySolar")
-
 names(policies_temp) %in% c(carbon_intensity_policies, energy_intensity_policies, other_policies)
 
 count <- policies_temp %>%
@@ -107,23 +105,15 @@ other_pol <- policies_temp %>% select(State, Year, all_of(other_policies)) %>%
 
 other_pol <- other_pol %>% select(State, Year, Other_Score)
 
-### dg policies
-
-dg_pol <- policies_temp %>% select(State, Year, all_of(dg_policies)) %>%
-  mutate(DG_Score = rowSums(across(c(-State, -Year)), na.rm = TRUE))
-
-dg_pol <- dg_pol %>% select(State, Year, DG_Score)
-
 ###
 
 count <- merge(count, CI_pol, by = c("State", "Year"))
 count <- merge(count, EI_pol, by = c("State", "Year"))
 count <- merge(count, other_pol, by = c("State", "Year"))
-count <- merge(count, dg_pol, by = c("State", "Year"))
 
 ###
 
-write.csv(count, "panel_with_count_FEB20.csv", row.names = FALSE)
+write.csv(count, "panel_with_counts.csv", row.names = FALSE)
 ```
 
 ```{r}
