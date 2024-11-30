@@ -9,33 +9,23 @@ editor_options:
 
 ```{r}
 options(scipen=999)
-library(tidyverse)
-library(patchwork)
-library(jtools)
-library(stringr)
-library(car)
-library(ggpubr)
-library(fixest)
-library(lmtest)
-library(xtable)
-library(sandwich)
-library(multiwayvcov)
-library(plm)
-library(ggrepel)
+
 library(reshape2)
+library(ggpubr)
+library(sandwich)
+library(broom)
+library(lmtest)
+library(tidyverse)
+library(dplyr)
 
 set.seed(07151129)
 theme_set(theme_pubr())
+
 ```
 
 ```{r}
 panel <- read.csv("panel_with_counts.csv")
-permutation_coefficients <- data.frame(Emissions = rep(NA, 1000),
-                                       CarbonIntensity = rep(NA, 1000),
-                                       EnergyIntensity = rep(NA, 1000),
-                                       PolicyScore = rep(NA, 1000),
-                                       CIScore = rep(NA, 1000),
-                                       EIScore = rep(NA, 1000))
+
 panel <- panel %>%
   mutate(
     log_EmissionsPerCapita = log(EmissionsPerCapita),
@@ -43,26 +33,50 @@ panel <- panel %>%
     log_EnergyIntensity = log(EnergyIntensity),
     log_GDPPerCapita = log(GDPPerCapita),
     factor_State = as.factor(State),
-    factor_Year = as.factor(Year)
+    factor_Year = as.factor(Year),
+    factor_Region = as.factor(Region),
+    factor_UnifiedRep = as.factor(case_when(
+      SenateMajority == 1 & HouseMajority == 1 ~ 1,
+      is.na(SenateMajority) | is.na(HouseMajority) ~ NA,
+      TRUE ~ 0
+    )),
+    factor_UnifiedRepLag1 = as.factor(case_when(
+      SenateMajorityLag1 == 1 & HouseMajorityLag1 == 1 ~ 1,
+      is.na(SenateMajorityLag1) | is.na(HouseMajorityLag1) ~ NA,
+      TRUE ~ 0
+    )),
+    factor_UnifiedRepLag2 = as.factor(case_when(
+      SenateMajorityLag2 == 1 & HouseMajorityLag2 == 1 ~ 1,
+      is.na(SenateMajorityLag2) | is.na(HouseMajorityLag2) ~ NA,
+      TRUE ~ 0
+    ))
   )
 ```
 
 **Fixed Effects Models**
 
 ```{r}
-independent_vars <- c("Ideology", "IdeologyLag1", "IdeologyLag2")
+ideology_vars <- c("Ideology", "IdeologyLag1", "IdeologyLag2"
+)
+polarization_vars <- c("Polarization", "PolarizationLag1", "PolarizationLag2")
+
+all_vars <- Map(c, ideology_vars, polarization_vars)
 
 dependent_vars <- list(
   m0 = "log_EmissionsPerCapita",
   m1 = "log_CarbonIntensity",
-  m2 = "log_EnergyIntensity"
+  m2 = "log_EnergyIntensity",
+  m3 = "RPS",
+  m4 = "EERS",
+  m5 = "GasTax"
 )
 
 outcome_formulas <- list()
 
 for (dv in dependent_vars) {
-  for (iv in independent_vars) {
-    formula <- as.formula(paste(dv, "~", iv, "+ log_GDPPerCapita + factor_State + factor_Year"))
+  for (iv_pair in all_vars) {
+    iv_formula <- paste(iv_pair, collapse = " + ")
+    formula <- as.formula(paste(dv, "~", iv_formula, "+ log_GDPPerCapita + factor_State + factor_Year"))
     outcome_formulas[[length(outcome_formulas) + 1]] <- formula
   }
 }
@@ -70,9 +84,9 @@ for (dv in dependent_vars) {
 fit_and_cluster <- function(formula, use_data) {
   model <- lm(formula = formula, data = use_data)
   print("modeled")
-  clustered_se <- vcovCL(model, cluster = use_data$factor_State)
+  clustered_se <- vcovCL(model, type = "HC1", cluster = use_data$factor_Region)
   print("clustered")
-  return(list(model = model, clustered_se = clustered_se))
+  return(list(model = model, clustered_se = clustered_se, formula = formula, data = use_data))
 }
 
 models <- lapply(outcome_formulas, fit_and_cluster, use_data = panel)
@@ -80,7 +94,7 @@ models <- lapply(outcome_formulas, fit_and_cluster, use_data = panel)
 threshold <- 2 / sqrt(nrow(panel))
 filtered_data <- lapply(models, function(model_list) {
   model <- model_list$model
-  formula <- formula(model)
+  formula <- model_list$formula
   dv <- deparse(formula[[2]])
   iv <- all.vars(formula[[3]])[1]
   dfbetas_values <- dfbetas(model)[, iv]
@@ -98,9 +112,17 @@ trimmed_models <- lapply(filtered_data, function(info) {
 extract_results <- function(model_list, trimmed, dataset) {
   model <- model_list$model
   clustered_se <- model_list$clustered_se
+  formula <- model_list$formula
+  data_used <- dataset
   tidy(coeftest(model, vcov = clustered_se)) %>%
-    filter(term %in% c("Ideology", "IdeologyLag1", "IdeologyLag2")) %>%
-    mutate(Trimmed = trimmed, Observations = nrow(dataset), DV = deparse(formula(model)[[2]]))
+    filter(term %in% c(ideology_vars, polarization_vars)) %>%
+    mutate(
+      Trimmed = trimmed,
+      Observations = nrow(data_used),
+      DV = deparse(formula[[2]]),
+      Model_Formula = paste(deparse(formula), collapse = " "),
+      Data_Used = paste(dim(dataset), collapse = " x ")
+    )
 }
 
 results_initial <- bind_rows(lapply(models, function(m) {
@@ -112,7 +134,9 @@ results_trimmed <- bind_rows(Map(function(m, i) {
 }, trimmed_models, seq_along(trimmed_models)))
 
 final_results_outcomes <- bind_rows(results_initial, results_trimmed) %>%
-  select(DV, Trimmed, Observations, term, estimate, std.error, statistic, p.value)
+  dplyr::select(DV, Trimmed, Observations, term, estimate, std.error, statistic, p.value, Model_Formula, Data_Used)
+
+write.csv(final_results_outcomes, "exports/final_results_outcomes.csv")
 ```
 
 **Fixed Effects Policy Scores**
@@ -124,11 +148,18 @@ dependent_vars <- list(
   m2 = "EE_Score"
 )
 
-formulas <- list()
+ideology_vars <- c("Ideology", "IdeologyLag1", "IdeologyLag2")
+polarization_vars <- c("Polarization", "PolarizationLag1", "PolarizationLag2")
+
+all_vars <- Map(c, ideology_vars, polarization_vars)
+
+policy_formulas <- list()
+
 for (dv in dependent_vars) {
-  for (iv in independent_vars) {
-    formula <- as.formula(paste(dv, "~", iv, "+ log_GDPPerCapita + factor_State + factor_Year"))
-    formulas[[length(formulas) + 1]] <- formula
+  for (iv_pair in all_vars) {
+    iv_formula <- paste(iv_pair, collapse = " + ")
+    formula <- as.formula(paste(dv, "~", iv_formula, "+ log_GDPPerCapita + factor_State + factor_Year"))
+    policy_formulas[[length(policy_formulas) + 1]] <- formula
   }
 }
 
@@ -136,18 +167,18 @@ fit_and_cluster <- function(formula, use_data) {
   model <- glm(formula = formula, data = use_data, family = "poisson")
   print("modeled")
   
-  clustered_se <- vcovCL(model, cluster = use_data$factor_State)
+  clustered_se <- vcovCL(model, type = "HC0", cluster = use_data$factor_Region)
   print("clustered")
-  return(list(model = model, clustered_se = clustered_se))
+  return(list(model = model, clustered_se = clustered_se, formula = formula, data = use_data))
 }
 
-models <- lapply(formulas, fit_and_cluster, use_data = panel)
+models <- lapply(policy_formulas, fit_and_cluster, use_data = panel)
 
 threshold <- 2 / sqrt(nrow(panel))
 
 filtered_data <- lapply(models, function(model_list) {
   model <- model_list$model
-  formula <- formula(model)
+  formula <- model_list$formula
   dv <- deparse(formula[[2]])
   iv <- all.vars(formula[[3]])[1]
   dfbetas_values <- dfbetas(model)[, iv]
@@ -165,9 +196,17 @@ trimmed_models <- lapply(filtered_data, function(info) {
 extract_results <- function(model_list, trimmed, dataset) {
   model <- model_list$model
   clustered_se <- model_list$clustered_se
+  formula <- model_list$formula
+  data_used <- dataset
   tidy(coeftest(model, vcov = clustered_se)) %>%
-    filter(term %in% c("Ideology", "IdeologyLag1", "IdeologyLag2")) %>%
-    mutate(Trimmed = trimmed, Observations = nrow(dataset), DV = deparse(formula(model)[[2]]))
+    filter(term %in% c(ideology_vars, polarization_vars)) %>%
+    mutate(
+      Trimmed = trimmed,
+      Observations = nrow(data_used),
+      DV = deparse(formula[[2]]),
+      Model_Formula = paste(deparse(formula), collapse = " "),
+      Data_Used = paste(dim(dataset), collapse = " x ")
+    )
 }
 
 results_initial <- bind_rows(lapply(models, function(m) {
@@ -179,128 +218,177 @@ results_trimmed <- bind_rows(Map(function(m, i) {
 }, trimmed_models, seq_along(trimmed_models)))
 
 final_results_policy <- bind_rows(results_initial, results_trimmed) %>%
-  select(DV, Trimmed, Observations, term, estimate, std.error, statistic, p.value)
+  dplyr::select(DV, Trimmed, Observations, term, estimate, std.error, statistic, p.value, Model_Formula, Data_Used)
 ```
 
 ```{r}
-permutation_results <- list()
-
-for (fml in outcome_formulas) {
-  dv <- deparse(fml[[2]])
-  iv <- all.vars(fml[[3]])[1]
-  
-  print(paste("Processing IV:", iv, "for DV:", dv))
-  
-  null_distribution <- numeric(1000)
-  
-  for (i in 1:1000) {
-    shuffled_data <- panel %>%
-      group_by(factor_State) %>%
-      mutate(!!sym(iv) := sample(!!sym(iv))) %>%
-      ungroup()
-    
-    updated_formula <- fml #
-    
-    model <- lm(
-      formula = updated_formula,
-      data = shuffled_data
-    )
-    
-    clustered_se <- vcovCL(model, cluster = ~ factor_State)
-    
-    null_distribution[i] <- coef(model)[iv]
-  }
-  
-  permutation_results[[paste(dv, iv, sep = ".")]] <- null_distribution
-}
+write.csv(final_results_outcomes, "exports/final_results_outcomes.csv")
+write.csv(final_results_policy, "exports/final_results_policy.csv")
 ```
 
-**Permutation - Policy Score**
+## Measures of Dem and Rep Medians
 
 ```{r}
-for (fml in formulas) {
-  dv <- deparse(fml[[2]])
-  iv <- all.vars(fml[[3]])[1]
-  
-  print(paste("Processing IV:", iv, "for DV:", dv))
-  
-  null_distribution <- numeric(1000)
-  
-  for (i in 1:1000) {
-    shuffled_data <- panel %>%
-      group_by(factor_State) %>%
-      mutate(!!sym(iv) := sample(!!sym(iv))) %>%
-      ungroup()
-    
-    updated_formula <- fml #
-    
-    model <- glm(
-      formula = updated_formula,
-      data = shuffled_data,
-      family = poisson
-    )
-    
-    clustered_se <- vcovCL(model, cluster = ~ factor_State)
-    
-    null_distribution[i] <- coef(model)[iv]
-  }
-  
-  permutation_results[[paste(dv, iv, sep = ".")]] <- null_distribution
-}
+ideology_vars <- c("Dems", "DemsLag1", "DemsLag2")
+polarization_vars <- c("Reps", "RepsLag1", "RepsLag2")
 
-write.csv(permutation_results, "exports/permutation_results.csv")
-```
+all_vars <- Map(c, ideology_vars, polarization_vars)
 
-```{r}
-permutation_coefficients <- permutation_results %>% as.data.frame()
-permutation_coefficients <- melt(permutation_coefficients)
-
-final_outcomes <- final_results_outcomes %>% filter(Trimmed == FALSE) %>% mutate(
-  variable = case_when(
-    DV == "log_CarbonIntensity" & term == "Ideology" ~ "log_CarbonIntensity.Ideology",
-    DV == "log_CarbonIntensity" & term == "IdeologyLag1" ~ "log_CarbonIntensity.IdeologyLag1",
-    DV == "log_CarbonIntensity" & term == "IdeologyLag2" ~ "log_CarbonIntensity.IdeologyLag2",
-    
-    DV == "log_EnergyIntensity" & term == "Ideology" ~ "log_EnergyIntensity.Ideology",
-    DV == "log_EnergyIntensity" & term == "IdeologyLag1" ~ "log_EnergyIntensity.IdeologyLag1",
-    DV == "log_EnergyIntensity" & term == "IdeologyLag2" ~ "log_EnergyIntensity.IdeologyLag2",
-
-    DV == "log_EmissionsPerCapita" & term == "Ideology" ~ "log_EmissionsPerCapita.Ideology",
-    DV == "log_EmissionsPerCapita" & term == "IdeologyLag1" ~ "log_EmissionsPerCapita.IdeologyLag1",
-    DV == "log_EmissionsPerCapita" & term == "IdeologyLag2" ~ "log_EmissionsPerCapita.IdeologyLag2"
-  )
+dependent_vars <- list(
+  m0 = "log_EmissionsPerCapita",
+  m1 = "log_CarbonIntensity",
+  m2 = "log_EnergyIntensity",
+  m3 = "RPS",
+  m4 = "EERS",
+  m5 = "GasTax"
 )
 
-final_policy <- final_results_policy %>% filter(Trimmed == FALSE) %>% mutate(
-  variable = case_when(
-    DV == "Score" & term == "Ideology" ~ "Score.Ideology",
-    DV == "Score" & term == "IdeologyLag1" ~ "Score.IdeologyLag1",
-    DV == "Score" & term == "IdeologyLag2" ~ "Score.IdeologyLag2",
-    
-    DV == "CI_Score" & term == "Ideology" ~ "CI_Score.Ideology",
-    DV == "CI_Score" & term == "IdeologyLag1" ~ "CI_Score.IdeologyLag1",
-    DV == "CI_Score" & term == "IdeologyLag2" ~ "CI_Score.IdeologyLag2",
+outcome_formulas <- list()
 
-    DV == "EE_Score" & term == "Ideology" ~ "EE_Score.Ideology",
-    DV == "EE_Score" & term == "IdeologyLag1" ~ "EE_Score.IdeologyLag1",
-    DV == "EE_Score" & term == "IdeologyLag2" ~ "EE_Score.IdeologyLag2"
-  )
+for (dv in dependent_vars) {
+  for (iv_pair in all_vars) {
+    iv_formula <- paste(iv_pair, collapse = " + ")
+    formula <- as.formula(paste(dv, "~", iv_formula, "+ factor_UnifiedRep + log_GDPPerCapita + factor_State + factor_Year"))
+    outcome_formulas[[length(outcome_formulas) + 1]] <- formula
+  }
+}
+
+fit_and_cluster <- function(formula, use_data) {
+  model <- lm(formula = formula, data = use_data)
+  print("modeled")
+  clustered_se <- vcovCL(model, type = "HC1", cluster = use_data$factor_Region)
+  print("clustered")
+  return(list(model = model, clustered_se = clustered_se, formula = formula, data = use_data))
+}
+
+models <- lapply(outcome_formulas, fit_and_cluster, use_data = panel)
+
+threshold <- 2 / sqrt(nrow(panel))
+filtered_data <- lapply(models, function(model_list) {
+  model <- model_list$model
+  formula <- model_list$formula
+  dv <- deparse(formula[[2]])
+  iv <- all.vars(formula[[3]])[1]
+  dfbetas_values <- dfbetas(model)[, iv]
+  influential <- abs(dfbetas_values) > threshold
+  trimmed_data <- model.frame(model)[!influential, ]
+  list(data = trimmed_data, formula = formula, dv = dv, iv = iv)
+})
+
+trimmed_models <- lapply(filtered_data, function(info) {
+  data <- info$data
+  formula <- info$formula
+  fit_and_cluster(formula, use_data = data)
+})
+
+extract_results <- function(model_list, trimmed, dataset) {
+  model <- model_list$model
+  clustered_se <- model_list$clustered_se
+  formula <- model_list$formula
+  data_used <- dataset
+  tidy(coeftest(model, vcov = clustered_se)) %>%
+    filter(term %in% c(ideology_vars, polarization_vars, "factor_UnifiedRep1")) %>%
+    mutate(
+      Trimmed = trimmed,
+      Observations = nrow(data_used),
+      DV = deparse(formula[[2]]),
+      Model_Formula = paste(deparse(formula), collapse = " "),
+      Data_Used = paste(dim(dataset), collapse = " x ")
+    )
+}
+
+results_initial <- bind_rows(lapply(models, function(m) {
+  extract_results(m, trimmed = FALSE, dataset = panel)
+}))
+
+results_trimmed <- bind_rows(Map(function(m, i) {
+  extract_results(m, trimmed = TRUE, dataset = filtered_data[[i]]$data)
+}, trimmed_models, seq_along(trimmed_models)))
+
+final_results_outcomes <- bind_rows(results_initial, results_trimmed) %>%
+  dplyr::select(DV, Trimmed, Observations, term, estimate, std.error, statistic, p.value, Model_Formula, Data_Used)
+
+write.csv(final_results_outcomes, "exports/final_results_outcomes.csv")
+```
+
+**Fixed Effects Policy Scores**
+
+```{r}
+dependent_vars <- list(
+  m0 = "Score",
+  m1 = "CI_Score",
+  m2 = "EE_Score"
 )
 
-final_coefficients <- rbind.data.frame(final_outcomes, final_policy)
+ideology_vars <- c("Dems", "DemsLag1", "DemsLag2")
+polarization_vars <- c("Reps", "RepsLag1", "RepsLag2")
 
-permutation_coefficients <- permutation_coefficients %>%
-  left_join(y = final_coefficients, join_by(variable)) %>%
-  mutate(permutation_greater = value >= estimate)
+all_vars <- Map(c, ideology_vars, polarization_vars)
 
-write.csv(permutation_coefficients, "exports/permutation_coefficients.csv")
+policy_formulas <- list()
 
-permutation_results <- permutation_coefficients  %>%
-  group_by(variable) %>% reframe(mean = mean(permutation_greater))
+for (dv in dependent_vars) {
+  for (iv_pair in all_vars) {
+    iv_formula <- paste(iv_pair, collapse = " + ")
+    formula <- as.formula(paste(dv, "~", iv_formula, "+ factor_UnifiedRep + log_GDPPerCapita + factor_State + factor_Year"))
+    policy_formulas[[length(policy_formulas) + 1]] <- formula
+  }
+}
 
-ggplot(permutation_coefficients) + geom_density(aes(x = value)) + facet_wrap(~ variable, ncol = 3) + 
-  geom_vline(
-    aes(xintercept = estimate, color = variable), 
-    linetype = "dashed"
-  )
+fit_and_cluster <- function(formula, use_data) {
+  model <- glm(formula = formula, data = use_data, family = "poisson")
+  print("modeled")
+  
+  clustered_se <- vcovCL(model, type = "HC0", cluster = use_data$factor_Region)
+  print("clustered")
+  return(list(model = model, clustered_se = clustered_se, formula = formula, data = use_data))
+}
+
+models <- lapply(policy_formulas, fit_and_cluster, use_data = panel)
+
+threshold <- 2 / sqrt(nrow(panel))
+
+filtered_data <- lapply(models, function(model_list) {
+  model <- model_list$model
+  formula <- model_list$formula
+  dv <- deparse(formula[[2]])
+  iv <- all.vars(formula[[3]])[1]
+  dfbetas_values <- dfbetas(model)[, iv]
+  influential <- abs(dfbetas_values) > threshold
+  trimmed_data <- model.frame(model)[!influential, ]
+  list(data = trimmed_data, formula = formula, dv = dv, iv = iv)
+})
+
+trimmed_models <- lapply(filtered_data, function(info) {
+  data <- info$data
+  formula <- info$formula
+  fit_and_cluster(formula, use_data = data)
+})
+
+extract_results <- function(model_list, trimmed, dataset) {
+  model <- model_list$model
+  clustered_se <- model_list$clustered_se
+  formula <- model_list$formula
+  data_used <- dataset
+  tidy(coeftest(model, vcov = clustered_se)) %>%
+    filter(term %in% c(ideology_vars, polarization_vars, "factor_UnifiedRep1")) %>%
+    mutate(
+      Trimmed = trimmed,
+      Observations = nrow(data_used),
+      DV = deparse(formula[[2]]),
+      Model_Formula = paste(deparse(formula), collapse = " "),
+      Data_Used = paste(dim(dataset), collapse = " x ")
+    )
+}
+
+results_initial <- bind_rows(lapply(models, function(m) {
+  extract_results(m, trimmed = FALSE, dataset = panel)
+}))
+
+results_trimmed <- bind_rows(Map(function(m, i) {
+  extract_results(m, trimmed = TRUE, dataset = filtered_data[[i]]$data)
+}, trimmed_models, seq_along(trimmed_models)))
+
+final_results_policy <- bind_rows(results_initial, results_trimmed) %>%
+  dplyr::select(DV, Trimmed, Observations, term, estimate, std.error, statistic, p.value, Model_Formula, Data_Used)
 ```

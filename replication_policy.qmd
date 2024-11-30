@@ -18,6 +18,7 @@ library(plm)
 library(reshape2)
 library(ggpubr)
 library(fixest)
+library(xtable)
 set.seed(07151129)
 ```
 
@@ -39,7 +40,6 @@ names(policies)[1:2] <- c("State", "Year")
 colnames(policies)
 
 policies_temp <- policies %>% select(-x_rps_targets_bindingonly, -z_gasoline_tax, -x_eers)
-str(policies_temp)
 
 colnames(policies_temp) <- 
   dplyr::recode(colnames(policies_temp),
@@ -112,6 +112,8 @@ count <- merge(count, EI_pol, by = c("State", "Year"))
 count <- merge(count, other_pol, by = c("State", "Year"))
 
 ###
+
+count <- count %>% left_join(y = policies %>% select(State, Year, RPS = x_rps_targets_bindingonly, GasTax = z_gasoline_tax, EERS = x_eers), join_by(State, Year))
 
 write.csv(count, "panel_with_counts.csv", row.names = FALSE)
 ```

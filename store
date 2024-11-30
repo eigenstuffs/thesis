@@ -1,0 +1,133 @@
+
+```{r}
+results_outcomes <- data.frame()
+
+for (fml in outcome_formulas) {
+  dv <- deparse(fml[[2]])
+  ivs_in_formula <- attr(terms(fml), "term.labels")
+  
+  ideology_var <- ivs_in_formula[grep("Ideology", ivs_in_formula)]
+  polarization_var <- ivs_in_formula[grep("Polarization", ivs_in_formula)]
+  relevant_ivs <- c(ideology_var, polarization_var)
+  
+  print(paste("Processing DV:", dv, "with IVs:", paste(relevant_ivs, collapse = ", ")))
+  
+  for (scenario in c("both", "ideology_only", "polarization_only")) {
+    if (scenario == "ideology_only") {
+      shuffle_vars <- ideology_var
+    } else if (scenario == "polarization_only") {
+      shuffle_vars <- polarization_var
+    } else {
+      shuffle_vars <- relevant_ivs
+    }
+    
+    for (i in 1:1000) {
+      shuffled_data <- panel %>%
+        group_by(factor_State) %>%
+        mutate(across(all_of(shuffle_vars), ~ sample(.))) %>%
+        ungroup()
+      
+      updated_formula <- reformulate(
+        c(relevant_ivs, "factor(factor_State)", "factor(factor_Year)"),
+        response = dv
+      )
+      
+      model <- lm(
+        formula = updated_formula,
+        data = shuffled_data
+      )
+      
+      clustered_se <- vcovCL(model, cluster = ~ factor_State)
+      
+      coef_values <- coef(model)
+      coef_values <- coef_values[grep("Ideology|Polarization", names(coef_values))]
+      
+      results_outcomes <- rbind(
+        results_outcomes,
+        data.frame(
+          DV = dv,
+          IVs = paste(relevant_ivs, collapse = ", "),
+          Shuffled_IVs = paste(shuffle_vars, collapse = ", "),
+          Model_Specification = paste(deparse(updated_formula), collapse = ""),
+          Ideology_Esimate = coef_values[1],
+          Polarization_Esimate = coef_values[2],
+          Scenario = scenario,
+          Iteration = i
+        )
+      )
+    }
+  }
+}
+
+write.csv(results_outcomes, "exports/results_outcomes.csv")
+```
+
+**Permutation - Policy Score**
+
+```{r}
+results_policy <- data.frame()
+
+for (fml in formulas) {
+  dv <- deparse(fml[[2]])
+  ivs_in_formula <- attr(terms(fml), "term.labels")
+  
+  ideology_var <- ivs_in_formula[grep("Ideology", ivs_in_formula)]
+  polarization_var <- ivs_in_formula[grep("Polarization", ivs_in_formula)]
+  relevant_ivs <- c(ideology_var, polarization_var)
+  
+  print(paste("Processing DV:", dv, "with IVs:", paste(relevant_ivs, collapse = ", ")))
+  
+  for (scenario in c("both", "ideology_only", "polarization_only")) {
+    if (scenario == "ideology_only") {
+      shuffle_vars <- ideology_var
+    } else if (scenario == "polarization_only") {
+      shuffle_vars <- polarization_var
+    } else {
+      shuffle_vars <- relevant_ivs
+    }
+    
+    for (i in 1:1000) {
+      shuffled_data <- panel %>%
+        group_by(factor_State) %>%
+        mutate(across(all_of(shuffle_vars), ~ sample(.))) %>%
+        ungroup()
+      
+      updated_formula <- reformulate(
+        c(relevant_ivs, "factor(factor_State)", "factor(factor_Year)"),
+        response = dv
+      )
+      
+      model <- glm(
+        formula = updated_formula,
+        data = shuffled_data,
+        family = "poisson"
+      )
+      
+      clustered_se <- vcovCL(model, cluster = ~ factor_State)
+      
+      coef_values <- coef(model)
+
+      results_policy <- rbind(
+        results_policy,
+        data.frame(
+          DV = dv,
+          IVs = paste(relevant_ivs, collapse = ", "),
+          Shuffled_IVs = paste(shuffle_vars, collapse = ", "),
+          Model_Specification = paste(deparse(updated_formula), collapse = ""),
+          Ideology_Esimate = coef_values[[grep("Ideology", names(coef_values))]],
+          Polarization_Esimate = coef_values[[grep("Polarization", names(coef_values))]],
+          Scenario = scenario,
+          Iteration = i
+        )
+      )
+    }
+  }
+}
+
+write.csv(results_policy, "exports/results_policy.csv")
+```
+
+
+```{r}
+
+```

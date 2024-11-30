@@ -34,6 +34,7 @@ pop <- read.csv("data/raw_pop.csv")
 ideology <- read_dta("data/raw_shormccarty.dta")
 employment <- read.csv("data/raw_employment.csv")
 urban <- read.csv("data/raw_urban.csv")
+regions <- read.csv("data/regions from cphalpert.csv")
 states <- as.data.frame(state.x77)
 ```
 
@@ -158,41 +159,74 @@ p <- Reduce(function(x, y) merge(x, y, by=c("State", "Year"), all = TRUE), list)
 p <- p %>% filter(State != "DC")
 ```
 
-Getting average chamber ideology\
+Getting average chamber ideology
 
 ```{r}
 ideology <- data.frame(
   State = ideology$st,
   Year = ideology$year,
-  House = ideology$hou_chamber,
-  Senate = ideology$sen_chamber
+  Ideology_House = ideology$hou_chamber,
+  Ideology_Senate = ideology$sen_chamber,
+  Polarization_House = ideology$h_diffs,
+  Polarization_Senate = ideology$s_diffs,
+  Dem_House_Median = ideology$hou_dem,
+  Dem_Sen_Median = ideology$sen_dem,
+  Rep_House_Median = ideology$hou_rep,
+  Rep_Senate_Median = ideology$sen_rep,
+  HouseMajority = ifelse(ideology$hou_rep == ideology$hou_majority, 1, 0),
+  SenateMajority = ifelse(ideology$sen_rep == ideology$sen_majority, 1, 0)
 )
-ideology$House <- as.numeric(ideology$House)
-ideology$Senate <- as.numeric(ideology$Senate)
-ideology$Ideology <- as.numeric(ideology$Senate)
 
-for (i in 1:nrow(ideology)) {
-  if (!is.na(ideology[i,3]) && !is.na(ideology[i,4])) {
-    ideology[i,5] <- as.numeric((ideology[i,3] + ideology[i,4])/2) # Average if we have both chambers
-  }
-}
+ideology <- ideology %>%
+  rowwise() %>%
+  mutate(
+    Ideology = mean(c_across(c(Ideology_House, Ideology_Senate)), na.rm = TRUE),
+    Polarization = mean(c_across(c(Polarization_House, Polarization_Senate)), na.rm = TRUE),
+    Dems = mean(c_across(c(Dem_House_Median, Dem_Sen_Median)), na.rm = TRUE),
+    Reps = mean(c_across(c(Rep_House_Median, Rep_Senate_Median)), na.rm = TRUE),
+    SplitLeadership = as.integer(HouseMajority != SenateMajority)
+  ) %>%
+  ungroup()
 
 ideology <- ideology %>% 
+  arrange(State, Year) %>%
   group_by(State) %>% 
   mutate(
     IdeologyLag1 = dplyr::lag(Ideology, 1),
     IdeologyLag2 = dplyr::lag(Ideology, 2),
-    IdeologyLag3 = dplyr::lag(Ideology, 3),
-    IdeologyLag4 = dplyr::lag(Ideology, 4),
-    IdeologyLag5 = dplyr::lag(Ideology, 5)
+    PolarizationLag1 = dplyr::lag(Polarization, 1),
+    PolarizationLag2 = dplyr::lag(Polarization, 2),
+    DemsLag1 = dplyr::lag(Dems, 1),
+    DemsLag2 = dplyr::lag(Dems, 2),
+    RepsLag1 = dplyr::lag(Reps, 1),
+    RepsLag2 = dplyr::lag(Reps, 2),
+    HouseMajorityLag1 = dplyr::lag(HouseMajority, 1),
+    SenateMajorityLag1 = dplyr::lag(SenateMajority, 1),
+    HouseMajorityLag2 = dplyr::lag(HouseMajority, 2),
+    SenateMajorityLag2 = dplyr::lag(SenateMajority, 2)
   ) %>% 
+  ungroup()
+
+ideology <- ideology %>%
+  group_by(Year) %>%
+  mutate(Binary_Ideology = ifelse(Ideology > median(Ideology, na.rm = TRUE), 1, 0)) %>%
+  mutate(Ideology_Quintile = ntile(Ideology, 5)) %>%
+  ungroup() %>%
+  arrange(State, Year) %>%
+  group_by(State) %>%
+  mutate(
+    Binary_Ideology_Lag1 = lag(Binary_Ideology, 1),
+    Binary_Ideology_Lag2 = lag(Binary_Ideology, 2),
+    Ideology_Quintile_Lag1 = lag(Ideology_Quintile, 1),
+    Ideology_Quintile_Lag2 = lag(Ideology_Quintile, 2)
+  ) %>%
   ungroup()
 
 ideology <- ideology[ideology$Year >= 1998 & ideology$Year <= 2020,]
 
-ideology <- ideology %>% select(-House, -Senate)
+ideology <- ideology %>% select(State, Year, starts_with("Ideology"), starts_with("Polarization"), starts_with("Binary"), starts_with("Dems"), starts_with("Reps"), starts_with("House"), starts_with("Senate"))
 
-p <- merge(ideology, p, by=c("State","Year"))
+p <- p %>% left_join(ideology, join_by(State, Year))
 ```
 
 Getting state areas and joining
@@ -210,73 +244,25 @@ p <- merge(p, states, by="State")
 Creating variables
 
 ```{r}
-p$EmissionsPerCapita <- p$Emissions/p$Population
 p$GDPPerCapita <- p$RealGDP/p$Population
-p$PropManuEmployment <- p$ManufacturingEmployment/p$TotalEmployment
-p$PropFarmEmployment <- p$FarmEmployment/p$TotalEmployment
-
-p <- p %>%
-  group_by(State) %>%
-  arrange(State, Year) %>%
-  mutate(across(starts_with("PercentUrb"), ~na.locf(.x, fromLast = TRUE, na.rm = FALSE))) %>%
-  ungroup()
+p$EmissionsPerCapita <- p$Emissions/p$Population
 
 p <- p %>% select(-Area, -RealGDP, -TotalEmployment, -FarmEmployment, -ManufacturingEmployment, -Emissions)
 ```
 
-Loading spatial data
-
 ```{r}
-pv <- read.csv("data/pv_reference_2020.csv")
-wind <- read.csv("data/Reference_Access_Siting_Regime_ATB_Mid_Turbine.csv")
-```
+regions <- regions %>%
+  select(State = State.Code, Region)
 
-Convert to SimpleFeatures, join by state
-
-```{r}
-coordinates_pv <- st_as_sf(pv, coords = c("longitude", "latitude"), crs = 4326)
-coordinates_wind <- st_as_sf(wind, coords = c("longitude", "latitude"), crs = 4326)
-
-states <- states(cb = TRUE) %>% st_transform(crs = st_crs(coordinates_pv))
-pv_with_states <- st_join(coordinates_pv, states)
-
-states <- states(cb = TRUE) %>% st_transform(crs = st_crs(coordinates_wind))
-wind_with_states <- st_join(coordinates_wind, states)
-
-pv_with_states <- pv_with_states %>% select(NAME, capacity_factor, capacity_mw, distance_to_transmission_km, global_horizontal_irradiance, area_sq_km)
-
-wind_with_states <- wind_with_states %>% select(NAME, capacity_factor, capacity_mw, generation_mwh, distance_to_transmission_km, wind_speed_120meters, area_sq_km)
-```
-
-Get average irradiance/speed of each state (constant)
-
-```{r}
-pv_with_states$GHI <- pv_with_states$global_horizontal_irradiance
-wind_with_states$Speed120m <- wind_with_states$wind_speed_120meters
-
-pv_with_states <- pv_with_states %>% group_by(NAME) %>%
-                  summarise(GHI = mean(GHI, na.rm = TRUE),
-                            )
-
-wind_with_states <- wind_with_states %>% group_by(NAME) %>%
-                  summarise(Speed120m = mean(Speed120m, na.rm = TRUE),
-                            )
-
-pv_with_states$NAME <- gsub(" ", "", pv_with_states$NAME)
-wind_with_states$NAME <- gsub(" ", "", wind_with_states$NAME)
-
-pv_with_states$NAME <- sapply(pv_with_states$NAME, convert_state_name)
-wind_with_states$NAME <- sapply(wind_with_states$NAME, convert_state_name)
-
-colnames(pv_with_states) <- c("State", "GHI", "geometry")
-colnames(wind_with_states) <- c("State", "Speed120m", "geometry")
-
-p <- left_join(p, na.omit(as.data.frame(pv_with_states)) %>% select(-geometry), by = join_by(State))
-p <- left_join(p, na.omit(as.data.frame(wind_with_states)) %>% select(-geometry), by = join_by(State))
+p <- p %>% left_join(y = regions, join_by(State))
 ```
 
 Export panel data as csv
 
 ```{r}
 write.csv(p, "panel.csv", row.names = FALSE)
+```
+
+```{r}
+
 ```

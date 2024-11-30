@@ -1,0 +1,99 @@
+---
+title: "replication_analysis"
+author: "Branden Bohrnsen"
+format: html
+editor: visual
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r}
+options(scipen=999)
+library(tidyverse)
+library(ggpubr)
+library(reshape2)
+
+set.seed(07151129)
+theme_set(theme_pubclean())
+```
+
+```{r}
+permutations_policy <- read.csv("exports/results_policy.csv")
+permutations_outcomes <- read.csv("exports/results_outcomes.csv")
+
+permutations <- rbind.data.frame(permutations_policy, permutations_outcomes)
+
+coefs_policy <- read.csv("exports/final_results_policy.csv")
+coefs_outcomes <- read.csv("exports/final_results_outcomes.csv")
+
+coefs <- rbind.data.frame(coefs_policy, coefs_outcomes) %>% filter(Trimmed == FALSE) %>% select(-Trimmed, -X, -Model_Formula, -Observations) %>%
+    mutate(lag_index = case_when(
+        grepl("1", term) ~ 1,
+        grepl("2", term) ~ 2,
+        TRUE ~ 0
+    ))
+
+coefs_ideology <- coefs %>% filter(grepl("Ideology", term))
+coefs_polarization <- coefs %>% filter(grepl("Polarization", term)) 
+
+coefs <- left_join(coefs_ideology, coefs_polarization, by = join_by(DV, Data_Used, lag_index), suffix = c("_Ideology", "_Polarization"))
+
+rm(permutations_policy, permutations_outcomes, coefs_policy, coefs_outcomes)
+```
+
+```{r}
+ggplot(permutations %>% filter(Scenario == "both")) +
+    geom_density(aes(x = Ideology_Esimate), color = "blue") +
+    geom_density(aes(x = Polarization_Esimate), color = "pink") +
+    facet_wrap(~ DV)
+```
+
+```{r}
+merged <- permutations %>% left_join(y = coefs, join_by(DV))
+
+no_lags <- permutations %>% filter(!grepl("Lag", Model_Specification)) %>% left_join(y = coefs %>% filter(lag_index == 0), join_by(DV))
+
+ggplot(no_lags %>% filter(Scenario == "both")) +
+    geom_density(aes(x = Ideology_Esimate), color = "blue") +
+    geom_density(aes(x = Polarization_Esimate), color = "pink") +
+    facet_wrap(~ DV) +
+    geom_vline(aes(xintercept = estimate_Ideology), color = "brown") +
+    geom_vline(aes(xintercept = estimate_Polarization), color = "green")
+
+lag_one <- permutations %>% filter(grepl("Lag1", Model_Specification)) %>% left_join(y = coefs %>% filter(lag_index == 1), join_by(DV))
+
+ggplot(lag_one %>% filter(Scenario == "both")) +
+    geom_density(aes(x = Ideology_Esimate), color = "blue") +
+    geom_density(aes(x = Polarization_Esimate), color = "pink") +
+    facet_wrap(~ DV) +
+    geom_vline(aes(xintercept = estimate_Ideology), color = "brown") +
+    geom_vline(aes(xintercept = estimate_Polarization), color = "green")
+
+lag_two <- permutations %>% filter(grepl("Lag2", Model_Specification)) %>% left_join(y = coefs %>% filter(lag_index == 2), join_by(DV))
+
+ggplot(lag_two %>% filter(Scenario == "both")) +
+    geom_density(aes(x = Ideology_Esimate), color = "blue") +
+    geom_density(aes(x = Polarization_Esimate), color = "pink") +
+    facet_wrap(~ DV) +
+    geom_vline(aes(xintercept = estimate_Ideology), color = "brown") +
+    geom_vline(aes(xintercept = estimate_Polarization), color = "green")
+```
+
+
+
+```{r}
+permutation_inference_no_lag <- no_lags %>% filter(Scenario == "both") %>%
+    mutate(IdeologyGreater = Ideology_Esimate >= estimate_Ideology, PolarizationGreater = Polarization_Esimate >= estimate_Polarization) %>%
+    group_by(DV, IVs, Shuffled_IVs) %>%
+    reframe(mean(IdeologyGreater), mean(PolarizationGreater))
+
+permutation_inference_lag_one <- lag_one %>% filter(Scenario == "both") %>%
+    mutate(IdeologyGreater = Ideology_Esimate >= estimate_Ideology, PolarizationGreater = Polarization_Esimate >= estimate_Polarization) %>%
+    group_by(DV, IVs, Shuffled_IVs) %>%
+    reframe(mean(IdeologyGreater), mean(PolarizationGreater))
+
+permutation_inference_lag_two <- lag_two %>% filter(Scenario == "both") %>%
+    mutate(IdeologyGreater = Ideology_Esimate >= estimate_Ideology, PolarizationGreater = Polarization_Esimate >= estimate_Polarization) %>%
+    group_by(DV, IVs, Shuffled_IVs) %>%
+    reframe(mean(IdeologyGreater), mean(PolarizationGreater))
+```
