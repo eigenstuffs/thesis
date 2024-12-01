@@ -1,1 +1,0 @@
-data from https://apps.bea.gov/regional/downloadzip.cfm (SAGDP tables by state)
