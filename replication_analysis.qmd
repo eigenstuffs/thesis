@@ -18,7 +18,7 @@ theme_set(theme_pubr())
 ```
 
 ```{r}
-panel <- read.csv("panel_with_counts.csv")
+panel <- read.csv("panel.csv") %>% arrange(State, Year) %>% group_by(Year) %>% mutate(AveragePolarization = mean(Polarization))
 
 ggplot(panel) +
     geom_point(aes(x = Year, y = Dems, color = "Democrats"), alpha = 0.2) +
@@ -60,4 +60,14 @@ ggplot(panel %>% filter(!is.na(Binary_Ideology))) +
     scale_color_manual(values = c("Carbon Intensity (log)" = "blue", "Energy Intensity (log)" = "red")) +
     facet_wrap(~ Binary_Ideology, labeller = as_labeller(c(`0` = "Further Left than Median", 
                                                            `1` = "Further Right than Median")))
+
+ggplot(panel %>% filter(!is.na(AveragePolarization))) +
+    geom_point(aes(x = Year, y = log_CarbonIntensity, color = "Carbon Intensity (log)"), alpha = 0.2) +
+    geom_point(aes(x = Year, y = log_EnergyIntensity, color = "Energy Intensity (log)"), alpha = 0.2) +
+    geom_smooth(aes(y = log_CarbonIntensity, x = Year), color = "black") +
+    geom_smooth(aes(y = log_EnergyIntensity, x = Year), color = "black") +
+    labs(x = "Year", y = "Outcome", title = "Environmental Performance Over Time", color = "Outcome") +
+    scale_color_manual(values = c("Carbon Intensity (log)" = "blue", "Energy Intensity (log)" = "red")) +
+    facet_wrap(~ Polarization >= AveragePolarization, labeller = as_labeller(c(`TRUE` = "Above Average Polarization", 
+                                                           `FALSE` = "Below Average Polarization")))
 ```
