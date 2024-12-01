@@ -1,7 +1,7 @@
 ---
 title: "replication_preprocessing"
 author: "Branden Bohrnsen"
-date: "6 February 2024"
+date: "1 December 2024"
 format: html
 editor: visual
 ---
@@ -26,14 +26,12 @@ set.seed(07151129)
 Reading all files as they were downloaded
 
 ```{r}
-emissions <- read.csv("data/raw_emissions.csv")
-ci <- read.csv("data/raw_ci.csv")
-ei <- read.csv("data/raw_ei.csv")
-gdpcurrent <- read.csv("data/raw_currentgdp.csv")
-pop <- read.csv("data/raw_pop.csv")
-ideology <- read_dta("data/raw_shormccarty.dta")
-employment <- read.csv("data/raw_employment.csv")
-urban <- read.csv("data/raw_urban.csv")
+emissions <- read.csv("data/emissions.csv")
+ci <- read.csv("data/ci.csv")
+ei <- read.csv("data/ei.csv")
+gdpcurrent <- read.csv("data/gdp.csv")
+pop <- read.csv("data/pop.csv")
+ideology <- read_dta("data/shormccarty2023.dta")
 regions <- read.csv("data/regions from cphalpert.csv")
 states <- as.data.frame(state.x77)
 ```
@@ -88,30 +86,6 @@ ci <- ci[2:52,1:53]
 ei <- ei[2:53,]
 colnames(ei) <- ei[1,]
 ei <- ei[2:52,1:63]
-employment <- employment %>% select(-LineCode)
-colnames(employment)[1:2] <- c("State", "Industry")
-
-urban <- urban %>% select(STATE.ABBREV, X2020.PCT.URBAN.POP, X2010.PCT.URBAN.POP)
-colnames(urban) <- c("State", "2020", "2010")
-urban <- urban %>% filter(State %in% state_mapping$Abbreviation)
-urban <- melt(urban, "State")
-colnames(urban) <- c("State", "Year", "PercentUrban")
-
-total_empl <- employment %>% filter(Industry == "Total employment (number of jobs)")
-farm_empl <- employment %>% filter(Industry == "  Farm employment")
-manu_empl <- employment %>% filter(Industry == "      Manufacturing")
-
-total_empl <- total_empl %>% select(-Industry)
-farm_empl <- farm_empl %>% select(-Industry)
-manu_empl <- manu_empl %>% select(-Industry)
-
-total_empl <- melt(total_empl, id = "State")
-farm_empl <- melt(farm_empl, id = "State")
-manu_empl <- melt(manu_empl, id = "State")
-
-colnames(total_empl) <- c("State", "Year", "TotalEmployment")
-colnames(farm_empl) <- c("State", "Year", "FarmEmployment")
-colnames(manu_empl) <- c("State", "Year", "ManufacturingEmployment")
 
 colnames(gdpcurrent) <- gdpcurrent[2,]
 gdpcurrent <- gdpcurrent[3:53,1:26]
@@ -134,7 +108,7 @@ colnames(ei) <- c("State", "Year", "EnergyIntensity")
 colnames(gdpcurrent) <- c("State", "Year", "RealGDP")
 colnames(pop) <- c("State", "Year", "Population")
 
-list <- list(emissions, ci, ei, gdpcurrent, pop, urban, total_empl, manu_empl, farm_empl)
+list <- list(emissions, ci, ei, gdpcurrent, pop)
 ```
 
 Applying transformations to data types and merging
@@ -247,7 +221,7 @@ Creating variables
 p$GDPPerCapita <- p$RealGDP/p$Population
 p$EmissionsPerCapita <- p$Emissions/p$Population
 
-p <- p %>% select(-Area, -RealGDP, -TotalEmployment, -FarmEmployment, -ManufacturingEmployment, -Emissions)
+p <- p %>% select(-Area, -RealGDP, -Emissions)
 ```
 
 ```{r}
