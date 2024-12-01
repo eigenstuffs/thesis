@@ -200,9 +200,8 @@ df$positive <- ifelse(df$odds_ratio > 1, "yes", "no")
 ggplot(df, aes(x = reorder(policy, odds_ratio), y = odds_ratio, fill = positive)) +
   geom_bar(stat = "identity") +
   coord_flip() + geom_hline(aes(yintercept = 1), linetype = "dashed") +
-  labs(x = "", y = "Odds Ratio", fill = "More likely when ideology shifts right?",
-       caption = "* Dashed line represents odds ratio at 0, when ideology has no effect")
-  ggtitle("Predictive Power of Ideology by Policy") + theme_pubr() +
+  labs(x = "", y = "Odds Ratio", fill = "More likely when ideology shifts right?") +
+  theme_pubr() +
   theme(axis.text.y = element_text(size = 8))
   
 ggsave("exploratory/policy_odds.png")

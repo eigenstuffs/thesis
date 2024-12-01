@@ -17,6 +17,7 @@ library(broom)
 library(lmtest)
 library(tidyverse)
 library(dplyr)
+library(xtable)
 
 set.seed(07151129)
 theme_set(theme_pubr())
@@ -51,6 +52,8 @@ panel <- panel %>%
       TRUE ~ 0
     ))
   )
+
+write.csv(panel, "panel.csv")
 ```
 
 **Fixed Effects Models**
@@ -219,6 +222,10 @@ results_trimmed <- bind_rows(Map(function(m, i) {
 
 final_results_policy <- bind_rows(results_initial, results_trimmed) %>%
   dplyr::select(DV, Trimmed, Observations, term, estimate, std.error, statistic, p.value, Model_Formula, Data_Used)
+```
+
+```{r}
+print(xtable(results_initial %>% select(DV = DV, Term = term, Estimate = estimate, `Std. Error` = std.error, p = p.value, n = Observations), caption = "Estimates Controlling for Ideology, Polarization, and GDP per Capita"), include.rownames = FALSE)
 ```
 
 ```{r}
